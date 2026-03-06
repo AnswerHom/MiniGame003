@@ -46,6 +46,18 @@ const CHARACTERS = {
         critRate: 0.05,
         critDamage: 1.3,
         skills: ['五雷咒', '观音咒', '圣灵复活']
+    },
+    阿奴: {
+        name: '阿奴',
+        role: '巫师',
+        hp: 600,
+        attack: 150,
+        attackSpeed: 0.8,
+        moveSpeed: 75,
+        attackRange: 120,
+        critRate: 0.15,
+        critDamage: 1.6,
+        skills: ['风雪冰天', '雷劫', '阴阳逆转']
     }
 };
 
@@ -98,6 +110,38 @@ const SKILLS = {
         type: 'revive',
         cooldown: 30,
         description: '复活死亡队友'
+    },
+    风雪冰天: {
+        name: '风雪冰天',
+        type: 'fan',
+        damagePercent: 1.2,
+        range: 150,
+        fanAngle: 60,
+        projectileCount: 5,
+        speed: 300,
+        cooldown: 2,
+        slowDuration: 1,
+        slowAmount: 0.3,
+        description: '扇形冰锥攻击'
+    },
+    雷劫: {
+        name: '雷劫',
+        type: 'ground',
+        damagePercent: 1.8,
+        radius: 60,
+        delay: 0.3,
+        cooldown: 3,
+        description: '指定区域降下雷电'
+    },
+    阴阳逆转: {
+        name: '阴阳逆转',
+        type: 'knockback',
+        damagePercent: 1.0,
+        radius: 150,
+        knockbackDist: 100,
+        duration: 0.5,
+        cooldown: 25,
+        description: '弹开范围内敌人'
     }
 };
 
@@ -108,5 +152,8 @@ const CARDS = {
     万剑护体: ['剑锋凌厉', '剑域扩张', '剑鸣不绝', '剑气回天'],
     五雷咒: ['雷光普照', '群体治愈', '持续治疗', '雷劫'],
     观音咒: ['金刚护体', '护盾强化', '反射护盾', '水灵护盾'],
-    圣灵复活: ['复活祝福', '群体复活', '快速复活', '复活传承']
+    圣灵复活: ['复活祝福', '群体复活', '快速复活', '复活传承'],
+    风雪冰天: ['寒冰之心', '冰封千里', '冰晶绽放', '绝对零度'],
+    雷劫: ['天雷罚世', '雷云密布', '连锁闪电', '雷神降世'],
+    阴阳逆转: ['太极生两仪', '阴阳交错', '混沌初开', '逆转乾坤']
 };

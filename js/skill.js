@@ -12,6 +12,15 @@ const SkillManager = {
             case 'aoe':
                 this.useAttackSkill(skill, caster, targets);
                 break;
+            case 'fan':
+                this.useFanSkill(skill, caster, targets);
+                break;
+            case 'ground':
+                this.useGroundSkill(skill, caster, targets);
+                break;
+            case 'knockback':
+                this.useKnockbackSkill(skill, caster, targets);
+                break;
             case 'heal':
                 this.useHealSkill(skill, caster, targets);
                 break;
@@ -45,6 +54,93 @@ const SkillManager = {
                 createProjectile(caster, angle, damage, skill.range);
             }
         }
+    },
+    
+    // 扇形攻击技能（风雪冰天）
+    useFanSkill(skill, caster, targets) {
+        const damage = caster.attack * skill.damagePercent;
+        const fanAngle = skill.fanAngle * Math.PI / 180; // 转换为弧度
+        
+        // 找到目标方向
+        let targetAngle = 0;
+        if (targets[0]) {
+            const dx = targets[0].x - caster.x;
+            const dy = targets[0].y - caster.y;
+            targetAngle = Math.atan2(dy, dx);
+        }
+        
+        // 发射扇形冰锥
+        for (let i = 0; i < skill.projectileCount; i++) {
+            // 计算每个冰锥的角度（均匀分布在扇形区域内）
+            const spread = fanAngle / (skill.projectileCount - 1);
+            const angle = targetAngle - fanAngle / 2 + spread * i;
+            
+            createIceProjectile(caster, angle, damage, skill.range, skill.speed, skill.slowDuration, skill.slowAmount);
+        }
+    },
+    
+    // 区域降落技能（雷劫）
+    useGroundSkill(skill, caster, targets) {
+        const damage = caster.attack * skill.damagePercent;
+        
+        // 目标位置（默认目标位置，如果没有目标则使用 caster 位置）
+        let targetX = caster.x;
+        let targetY = caster.y;
+        
+        if (targets[0]) {
+            targetX = targets[0].x;
+            targetY = targets[0].y;
+        }
+        
+        // 添加延迟雷电效果
+        game.effects.push({
+            type: 'lightning',
+            x: targetX,
+            y: targetY,
+            radius: skill.radius,
+            damage: damage,
+            delay: skill.delay,
+            life: skill.delay + 0.5,
+            caster: caster
+        });
+    },
+    
+    // 击退技能（阴阳逆转）
+    useKnockbackSkill(skill, caster, targets) {
+        const damage = caster.attack * skill.damagePercent;
+        
+        // 对范围内所有敌人造成伤害和击退
+        game.enemies.forEach(enemy => {
+            if (!enemy.alive) return;
+            
+            const dx = enemy.x - caster.x;
+            const dy = enemy.y - caster.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist <= skill.radius) {
+                // 造成伤害
+                enemy.hp -= damage;
+                if (enemy.hp <= 0) {
+                    enemy.alive = false;
+                    game.gold += enemy.exp;
+                }
+                
+                // 击退效果
+                if (dist > 0) {
+                    enemy.x += (dx / dist) * skill.knockbackDist;
+                    enemy.y += (dy / dist) * skill.knockbackDist;
+                }
+            }
+        });
+        
+        // 添加特效
+        game.effects.push({
+            type: 'yinYang',
+            x: caster.x,
+            y: caster.y,
+            radius: skill.radius,
+            life: skill.duration
+        });
     },
     
     // 治疗技能 - 只治疗范围内的队友
@@ -131,6 +227,26 @@ function createProjectile(caster, angle, damage, range) {
         damage: damage,
         isCrit: Math.random() < caster.critRate,
         life: life,
-        range: range
+        range: range,
+        type: 'normal'
+    });
+}
+
+// 创建冰锥投射物（带减速效果）
+function createIceProjectile(caster, angle, damage, range, speed, slowDuration, slowAmount) {
+    const life = range / speed;
+    
+    game.projectiles.push({
+        x: caster.x,
+        y: caster.y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        damage: damage,
+        isCrit: Math.random() < caster.critRate,
+        life: life,
+        range: range,
+        type: 'ice',
+        slowDuration: slowDuration,
+        slowAmount: slowAmount
     });
 }

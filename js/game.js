@@ -189,6 +189,20 @@ function usePlayerSkill(player, skillName) {
             // 复活死亡队友
             SkillManager.useReviveSkill(skill, player, game.players);
             break;
+        case 'fan':
+            // 风雪冰天 - 扇形攻击
+            const fanTarget = findNearestEnemy(player);
+            SkillManager.useFanSkill(skill, player, fanTarget ? [fanTarget] : []);
+            break;
+        case 'ground':
+            // 雷劫 - 区域雷电
+            const groundTarget = findNearestEnemy(player);
+            SkillManager.useGroundSkill(skill, player, groundTarget ? [groundTarget] : []);
+            break;
+        case 'knockback':
+            // 阴阳逆转 - 击退
+            SkillManager.useKnockbackSkill(skill, player, game.enemies);
+            break;
         case 'aoe':
             // 万剑护体 - 环绕剑阵
             if (skillName === '万剑护体') {
@@ -243,8 +257,8 @@ function drawMenu() {
     ctx.fillText('点击选择角色开始游戏', game.width / 2, game.height / 2);
     
     // 绘制角色选项
-    const chars = ['李逍遥', '赵灵儿'];
-    const startX = game.width / 2 - 150;
+    const chars = ['李逍遥', '赵灵儿', '阿奴'];
+    const startX = game.width / 2 - 240;
     const y = game.height / 2 + 80;
     
     chars.forEach((char, i) => {
@@ -270,8 +284,8 @@ function drawMenu() {
 
 // 选择角色
 function selectCharacter(x, y) {
-    const chars = ['李逍遥', '赵灵儿'];
-    const startX = game.width / 2 - 150;
+    const chars = ['李逍遥', '赵灵儿', '阿奴'];
+    const startX = game.width / 2 - 240;
     const charY = game.height / 2 + 80;
     
     chars.forEach((char, i) => {
@@ -415,6 +429,12 @@ function update(dt) {
     game.enemies.forEach(enemy => {
         if (!enemy.alive) return;
         
+        // 计算移动速度（考虑减速效果）
+        let currentSpeed = enemy.moveSpeed;
+        if (enemy.slowTimer > 0) {
+            currentSpeed *= (1 - (enemy.slowAmount || 0.3));
+        }
+        
         // 寻找最近玩家
         const target = findNearestPlayer(enemy);
         if (target) {
@@ -423,8 +443,8 @@ function update(dt) {
             const dist = Math.sqrt(dx * dx + dy * dy);
             
             if (dist > enemy.attackRange) {
-                enemy.x += (dx / dist) * enemy.moveSpeed * dt;
-                enemy.y += (dy / dist) * enemy.moveSpeed * dt;
+                enemy.x += (dx / dist) * currentSpeed * dt;
+                enemy.y += (dy / dist) * currentSpeed * dt;
             } else {
                 // 攻击
                 enemy.lastAttack += dt;
@@ -455,11 +475,25 @@ function update(dt) {
                     enemy.alive = false;
                     game.gold += enemy.exp;
                 }
+                
+                // 冰锥减速效果
+                if (p.type === 'ice' && p.slowDuration > 0) {
+                    enemy.slowTimer = p.slowDuration;
+                    enemy.slowAmount = p.slowAmount;
+                }
+                
                 p.life = 0;
             }
         });
         
         return p.life > 0;
+    });
+    
+    // 更新敌人状态（减速效果）
+    game.enemies.forEach(enemy => {
+        if (enemy.slowTimer > 0) {
+            enemy.slowTimer -= dt;
+        }
     });
     
     // 清理死亡单位
@@ -569,6 +603,64 @@ function renderEffects() {
                 ctx.textAlign = 'center';
                 ctx.fillText('复活!', effect.x, effect.y - 30);
                 break;
+            case 'lightning':
+                // 雷电效果 - 延迟后显示
+                if (effect.delay > 0) {
+                    effect.delay -= 0.016; // 假设60fps
+                    if (effect.delay <= 0) {
+                        // 雷电降落，造成伤害
+                        game.enemies.forEach(enemy => {
+                            if (!enemy.alive) return;
+                            const dx = enemy.x - effect.x;
+                            const dy = enemy.y - effect.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            if (dist < effect.radius) {
+                                enemy.hp -= effect.damage;
+                                if (enemy.hp <= 0) {
+                                    enemy.alive = false;
+                                    game.gold += enemy.exp;
+                                }
+                            }
+                        });
+                    }
+                }
+                // 绘制雷电
+                if (effect.delay <= 0.3) {
+                    ctx.fillStyle = `rgba(255, 255, 0, ${effect.life * 2})`;
+                    ctx.beginPath();
+                    ctx.arc(effect.x, effect.y, effect.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                    // 雷电中心
+                    ctx.fillStyle = `rgba(255, 255, 255, ${effect.life})`;
+                    ctx.beginPath();
+                    ctx.arc(effect.x, effect.y, effect.radius * 0.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                break;
+            case 'yinYang':
+                // 阴阳逆转效果 - 黑白气流旋转扩散
+                const progress = 1 - effect.life / 0.5;
+                const currentRadius = effect.radius * progress;
+                
+                // 绘制阴阳气流
+                ctx.save();
+                ctx.translate(effect.x, effect.y);
+                ctx.rotate(progress * Math.PI * 2);
+                
+                // 白色半圆
+                ctx.fillStyle = `rgba(255, 255, 255, ${effect.life * 2})`;
+                ctx.beginPath();
+                ctx.arc(0, 0, currentRadius, 0, Math.PI);
+                ctx.fill();
+                
+                // 黑色半圆
+                ctx.fillStyle = `rgba(0, 0, 0, ${effect.life * 2})`;
+                ctx.beginPath();
+                ctx.arc(0, 0, currentRadius, Math.PI, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+                break;
         }
     });
 }
@@ -659,18 +751,34 @@ function render() {
     
     // 绘制投射物
     game.projectiles.forEach(p => {
-        // 暴击特效 - 金色闪光
+        // 暴击特效
         if (p.isCrit) {
-            ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+            const critColor = p.type === 'ice' ? 'rgba(138, 43, 226, 0.3)' : 'rgba(255, 215, 0, 0.3)';
+            ctx.fillStyle = critColor;
             ctx.beginPath();
             ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
             ctx.fill();
         }
         
-        ctx.fillStyle = p.isCrit ? COLORS.ui.gold : '#fff';
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
-        ctx.fill();
+        // 根据投射物类型设置颜色
+        if (p.type === 'ice') {
+            // 冰锥 - 蓝色
+            ctx.fillStyle = p.isCrit ? '#9400D3' : '#00BFFF';
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+            ctx.fill();
+            // 冰晶光晕
+            ctx.fillStyle = 'rgba(0, 191, 255, 0.3)';
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+            ctx.fill();
+        } else {
+            // 普通投射物
+            ctx.fillStyle = p.isCrit ? COLORS.ui.gold : '#fff';
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+            ctx.fill();
+        }
     });
     
     // 绘制特效
