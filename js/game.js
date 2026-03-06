@@ -15,10 +15,14 @@ const game = {
     enemies: [],
     projectiles: [],
     effects: [],
-    ui: {
-        selectedCharacter: null,
-        showCardSelect: false,
-        cards: []
+    // 虚拟摇杆
+    joystick: {
+        active: false,
+        originX: 0,
+        originY: 0,
+        currentX: 0,
+        currentY: 0,
+        touchId: null
     }
 };
 
@@ -38,6 +42,11 @@ function initGame() {
     
     // 键盘事件
     window.addEventListener('keydown', handleKeyDown);
+    
+    // 触摸事件 - 虚拟摇杆
+    game.canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    game.canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    game.canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
 }
 
 // 调整画布大小
@@ -79,6 +88,78 @@ function handleKeyDown(e) {
     }
 }
 
+// 处理触摸开始 - 虚拟摇杆
+function handleTouchStart(e) {
+    if (game.state !== 'playing') return;
+    
+    e.preventDefault();
+    
+    const touch = e.changedTouches[0];
+    const rect = game.canvas.getBoundingClientRect();
+    const x = touch.clientX - rect.left;
+    const y = touch.clientY - rect.top;
+    
+    // 只在左侧区域激活摇杆
+    if (x < game.width * 0.4) {
+        game.joystick.active = true;
+        game.joystick.originX = x;
+        game.joystick.originY = y;
+        game.joystick.currentX = x;
+        game.joystick.currentY = y;
+        game.joystick.touchId = touch.identifier;
+    }
+}
+
+// 处理触摸移动 - 虚拟摇杆
+function handleTouchMove(e) {
+    if (!game.joystick.active) return;
+    
+    e.preventDefault();
+    
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        if (touch.identifier === game.joystick.touchId) {
+            const rect = game.canvas.getBoundingClientRect();
+            let x = touch.clientX - rect.left;
+            let y = touch.clientY - rect.top;
+            
+            // 限制摇杆范围
+            const maxDist = 50;
+            const dx = x - game.joystick.originX;
+            const dy = y - game.joystick.originY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist > maxDist) {
+                x = game.joystick.originX + (dx / dist) * maxDist;
+                y = game.joystick.originY + (dy / dist) * maxDist;
+            }
+            
+            game.joystick.currentX = x;
+            game.joystick.currentY = y;
+            
+            // 移动玩家
+            const player = game.players[0];
+            if (player && player.alive) {
+                player.targetX = player.x + (x - game.joystick.originX) * 3;
+                player.targetY = player.y + (y - game.joystick.originY) * 3;
+            }
+            break;
+        }
+    }
+}
+
+// 处理触摸结束 - 虚拟摇杆
+function handleTouchEnd(e) {
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        const touch = e.changedTouches[i];
+        if (touch.identifier === game.joystick.touchId) {
+            game.joystick.active = false;
+            game.joystick.touchId = null;
+            break;
+        }
+    }
+}
+
 // 使用玩家技能
 function usePlayerSkill(player, skillName) {
     const skill = SKILLS[skillName];
@@ -108,14 +189,40 @@ function usePlayerSkill(player, skillName) {
             // 复活死亡队友
             SkillManager.useReviveSkill(skill, player, game.players);
             break;
-        case 'attack':
         case 'aoe':
-            const target = findNearestEnemy(player);
-            if (target) {
-                SkillManager.useAttackSkill(skill, player, [target]);
+            // 万剑护体 - 环绕剑阵
+            if (skillName === '万剑护体') {
+                activateSwordOrbit(player, skill);
+            } else {
+                const target = findNearestEnemy(player);
+                if (target) {
+                    SkillManager.useAttackSkill(skill, player, [target]);
+                }
+            }
+            break;
+        case 'attack':
+        default:
+            const defaultTarget = findNearestEnemy(player);
+            if (defaultTarget) {
+                SkillManager.useAttackSkill(skill, player, [defaultTarget]);
             }
             break;
     }
+}
+
+// 激活万剑护体
+function activateSwordOrbit(player, skill) {
+    // 激活环绕效果
+    player.swordOrbit = true;
+    player.swordOrbitEndTime = game.time + skill.duration;
+    
+    // 添加特效
+    game.effects.push({
+        type: 'swordOrbit',
+        x: player.x,
+        y: player.y,
+        life: skill.duration
+    });
 }
 
 // 绘制主菜单
@@ -251,6 +358,33 @@ function update(dt) {
                 if (player.skillCooldowns[skillName] > 0) {
                     player.skillCooldowns[skillName] -= dt;
                 }
+            }
+        }
+        
+        // 万剑护体持续伤害
+        if (player.swordOrbit) {
+            // 检查是否到期
+            if (game.time >= player.swordOrbitEndTime) {
+                player.swordOrbit = false;
+            } else {
+                // 对范围内敌人造成伤害
+                const orbitRadius = 100;
+                game.enemies.forEach(enemy => {
+                    if (!enemy.alive) return;
+                    const dx = enemy.x - player.x;
+                    const dy = enemy.y - player.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < orbitRadius + enemy.size) {
+                        // 50%攻击力/秒的伤害
+                        const damage = player.attack * 0.5 * dt;
+                        enemy.hp -= damage;
+                        if (enemy.hp <= 0) {
+                            enemy.alive = false;
+                            game.gold += enemy.exp;
+                        }
+                    }
+                });
             }
         }
         
@@ -466,41 +600,73 @@ function render() {
     game.players.forEach(player => {
         if (!player.alive) return;
         
-        // 玩家圆形
+        const hpPercent = player.hp / player.maxHp;
+        
+        // 血量环 - 根据血量百分比显示不同颜色
+        let hpColor;
+        if (hpPercent > 0.5) {
+            hpColor = '#00FF00'; // 绿色
+        } else if (hpPercent > 0.2) {
+            hpColor = '#FFFF00'; // 黄色
+        } else {
+            hpColor = '#FF0000'; // 红色
+        }
+        
+        // 血量环背景
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, 23, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // 血量环进度
+        ctx.strokeStyle = hpColor;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, 23, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * hpPercent);
+        ctx.stroke();
+        
+        // 玩家圆形（头像）
         ctx.fillStyle = COLORS.ui.primary;
         ctx.beginPath();
-        ctx.arc(player.x, player.y, 20, 0, Math.PI * 2);
+        ctx.arc(player.x, player.y, 15, 0, Math.PI * 2);
         ctx.fill();
         
         // 玩家名称
         ctx.fillStyle = '#fff';
         ctx.font = '12px Microsoft YaHei';
         ctx.textAlign = 'center';
-        ctx.fillText(player.name, player.x, player.y - 30);
-        
-        // 血条
-        const hpPercent = player.hp / player.maxHp;
-        ctx.fillStyle = '#333';
-        ctx.fillRect(player.x - 20, player.y - 25, 40, 5);
-        ctx.fillStyle = COLORS.ui.hp;
-        ctx.fillRect(player.x - 20, player.y - 25, 40 * hpPercent, 5);
+        ctx.fillText(player.name, player.x, player.y - 35);
         
         // 护盾显示
         if (player.shield > 0) {
             ctx.strokeStyle = COLORS.ui.spirit;
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.arc(player.x, player.y, 25, 0, Math.PI * 2);
+            ctx.arc(player.x, player.y, 28, 0, Math.PI * 2);
             ctx.stroke();
             
             ctx.fillStyle = COLORS.ui.spirit;
             ctx.font = '10px Microsoft YaHei';
-            ctx.fillText('盾:' + Math.floor(player.shield), player.x, player.y + 35);
+            ctx.fillText('盾:' + Math.floor(player.shield), player.x, player.y + 40);
+        }
+        
+        // 万剑护体效果
+        if (player.swordOrbit) {
+            drawSwordOrbit(player);
         }
     });
     
     // 绘制投射物
     game.projectiles.forEach(p => {
+        // 暴击特效 - 金色闪光
+        if (p.isCrit) {
+            ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
         ctx.fillStyle = p.isCrit ? COLORS.ui.gold : '#fff';
         ctx.beginPath();
         ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
@@ -528,8 +694,58 @@ function drawGameUI() {
     ctx.fillStyle = COLORS.ui.gold;
     ctx.fillText('💰 ' + game.gold, 20, 55);
     
+    // 绘制虚拟摇杆
+    drawJoystick();
+    
     // 绘制技能栏
     drawSkillBar();
+}
+
+// 绘制虚拟摇杆
+function drawJoystick() {
+    const ctx = game.ctx;
+    
+    if (!game.joystick.active) return;
+    
+    // 摇杆底座
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.beginPath();
+    ctx.arc(game.joystick.originX, game.joystick.originY, 50, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 摇杆中心
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.beginPath();
+    ctx.arc(game.joystick.currentX, game.joystick.currentY, 25, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+// 绘制万剑护体效果
+function drawSwordOrbit(player) {
+    const ctx = game.ctx;
+    const swordCount = 8;
+    const radius = 100;
+    const rotationSpeed = (60 * Math.PI / 180); // 60度/秒
+    
+    // 更新旋转角度
+    if (!player.swordOrbitAngle) {
+        player.swordOrbitAngle = 0;
+    }
+    player.swordOrbitAngle += rotationSpeed * 0.016; // 假设60fps
+    
+    for (let i = 0; i < swordCount; i++) {
+        const angle = player.swordOrbitAngle + (Math.PI * 2 / swordCount) * i;
+        const x = player.x + Math.cos(angle) * radius;
+        const y = player.y + Math.sin(angle) * radius;
+        
+        // 绘制剑
+        ctx.fillStyle = '#87ceeb';
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle + Math.PI / 2);
+        ctx.fillRect(-3, -10, 6, 20);
+        ctx.restore();
+    }
 }
 
 // 绘制技能栏
