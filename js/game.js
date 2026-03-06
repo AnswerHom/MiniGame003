@@ -15,6 +15,14 @@ const game = {
     enemies: [],
     projectiles: [],
     effects: [],
+    // 波次系统
+    waveState: 'waiting', // waiting, spawning, countdown, playing, complete
+    waveTimer: 0,
+    waveCountdown: 3,
+    waveEnemiesRemaining: 0,
+    waveEnemiesSpawned: 0,
+    waveSpawnTimer: 0,
+    enemiesToSpawn: 0,
     // 虚拟摇杆
     joystick: {
         active: false,
@@ -307,6 +315,15 @@ function startGame(characterName) {
     game.gold = 0;
     game.time = 0;
     
+    // 初始化波次系统
+    game.waveState = 'countdown';
+    game.waveTimer = 15;
+    game.waveCountdown = 3;
+    game.waveEnemiesRemaining = 0;
+    game.waveEnemiesSpawned = 0;
+    game.waveSpawnTimer = 0;
+    game.enemiesToSpawn = 0;
+    
     // 开始游戏循环
     game.lastTime = performance.now();
     requestAnimationFrame(gameLoop);
@@ -429,10 +446,24 @@ function update(dt) {
     game.enemies.forEach(enemy => {
         if (!enemy.alive) return;
         
-        // 计算移动速度（考虑减速效果）
+        // 计算移动速度（考虑减速效果和精英怪光环）
         let currentSpeed = enemy.moveSpeed;
         if (enemy.slowTimer > 0) {
             currentSpeed *= (1 - (enemy.slowAmount || 0.3));
+        }
+        
+        // 检查精英怪光环 - 周围小怪移动速度+20%
+        if (!enemy.isElite) {
+            game.enemies.forEach(ally => {
+                if (ally.isElite && ally.alive) {
+                    const dx = enemy.x - ally.x;
+                    const dy = enemy.y - ally.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < ally.auraRange) {
+                        currentSpeed *= (1 + ally.auraSpeedBonus);
+                    }
+                }
+            });
         }
         
         // 寻找最近玩家
@@ -504,6 +535,165 @@ function update(dt) {
         e.life -= dt;
         return e.life > 0;
     });
+    
+    // 更新波次系统
+    updateWaveSystem(dt);
+}
+
+// 波次系统更新
+function updateWaveSystem(dt) {
+    if (game.state !== 'playing') return;
+    
+    switch (game.waveState) {
+        case 'countdown':
+            // 倒计时阶段
+            game.waveCountdown -= dt;
+            if (game.waveCountdown <= 0) {
+                startWave();
+            }
+            break;
+            
+        case 'spawning':
+            // 刷怪阶段
+            game.waveSpawnTimer += dt;
+            if (game.waveSpawnTimer >= 0.5 && game.waveEnemiesSpawned < game.enemiesToSpawn) {
+                spawnWaveEnemy();
+                game.waveSpawnTimer = 0;
+            }
+            
+            // 检查是否完成刷怪
+            if (game.waveEnemiesSpawned >= game.enemiesToSpawn) {
+                game.waveState = 'playing';
+            }
+            break;
+            
+        case 'playing':
+            // 战斗阶段 - 检查是否击杀所有敌人
+            game.waveEnemiesRemaining = game.enemies.filter(e => e.alive).length;
+            
+            if (game.waveEnemiesRemaining === 0 && game.waveEnemiesSpawned >= game.enemiesToSpawn) {
+                // 波次完成
+                completeWave();
+            }
+            break;
+    }
+}
+
+// 开始波次
+function startWave() {
+    // 计算本波怪物数量和属性
+    const baseCount = 5;
+    const enemyCount = baseCount + game.wave - 1;
+    const attributeMultiplier = 1 + (game.wave - 1) * 0.1;
+    
+    game.enemiesToSpawn = enemyCount;
+    game.waveEnemiesSpawned = 0;
+    game.waveSpawnTimer = 0;
+    game.waveState = 'spawning';
+    
+    // 添加波次开始特效
+    game.effects.push({
+        type: 'waveStart',
+        wave: game.wave,
+        life: 3
+    });
+}
+
+// 生成波次敌人
+function spawnWaveEnemy() {
+    const baseHp = 100;
+    const baseAttack = 20;
+    const baseSpeed = 50;
+    const attributeMultiplier = 1 + (game.wave - 1) * 0.1;
+    
+    // 精英怪：从第3波开始，每3波出现1只
+    const isElite = (game.wave >= 3) && ((game.wave - 3) % 3 === 0) && 
+                    (game.waveEnemiesSpawned === 0);
+    
+    // 生成位置：屏幕边缘
+    const side = Math.floor(Math.random() * 4);
+    let x, y;
+    const buffer = 100;
+    
+    switch (side) {
+        case 0: // 上
+            x = Math.random() * game.width;
+            y = -buffer;
+            break;
+        case 1: // 下
+            x = Math.random() * game.width;
+            y = game.height + buffer;
+            break;
+        case 2: // 左
+            x = -buffer;
+            y = Math.random() * game.height;
+            break;
+        case 3: // 右
+            x = game.width + buffer;
+            y = Math.random() * game.height;
+            break;
+    }
+    
+    if (isElite) {
+        // 精英怪
+        game.enemies.push({
+            x: x,
+            y: y,
+            hp: Math.floor(baseHp * 3 * attributeMultiplier),
+            maxHp: Math.floor(baseHp * 3 * attributeMultiplier),
+            attack: Math.floor(baseAttack * 2 * attributeMultiplier),
+            moveSpeed: baseSpeed * 0.8 * attributeMultiplier,
+            attackRange: 30,
+            attackInterval: 1.5,
+            lastAttack: 0,
+            size: 15,
+            color: '#9400D3',
+            alive: true,
+            exp: 20,
+            isElite: true,
+            auraRange: 100,
+            auraSpeedBonus: 0.2
+        });
+    } else {
+        // 普通小怪
+        game.enemies.push({
+            x: x,
+            y: y,
+            hp: Math.floor(baseHp * attributeMultiplier),
+            maxHp: Math.floor(baseHp * attributeMultiplier),
+            attack: Math.floor(baseAttack * attributeMultiplier),
+            moveSpeed: baseSpeed * attributeMultiplier,
+            attackRange: 30,
+            attackInterval: 1.5,
+            lastAttack: 0,
+            size: 10,
+            color: '#888',
+            alive: true,
+            exp: 10,
+            isElite: false
+        });
+    }
+    
+    game.waveEnemiesSpawned++;
+}
+
+// 完成波次
+function completeWave() {
+    // 发放金币奖励
+    game.gold += 100;
+    
+    // 波次提示
+    game.effects.push({
+        type: 'waveComplete',
+        wave: game.wave,
+        life: 2
+    });
+    
+    // 进入下一波
+    game.wave++;
+    game.waveState = 'countdown';
+    game.waveCountdown = 3;
+    game.waveTimer = 15;
 }
 
 // 查找最近敌人
@@ -661,6 +851,20 @@ function renderEffects() {
                 
                 ctx.restore();
                 break;
+            case 'waveStart':
+                ctx.fillStyle = `rgba(255, 68, 68, ${effect.life})`;
+                ctx.font = 'bold 32px Microsoft YaHei';
+                ctx.textAlign = 'center';
+                ctx.fillText('第 ' + effect.wave + ' 波 开始！', game.width / 2, game.height / 2);
+                break;
+            case 'waveComplete':
+                ctx.fillStyle = `rgba(255, 215, 0, ${effect.life})`;
+                ctx.font = 'bold 28px Microsoft YaHei';
+                ctx.textAlign = 'center';
+                ctx.fillText('第 ' + effect.wave + ' 波 完成！', game.width / 2, game.height / 2);
+                ctx.font = '20px Microsoft YaHei';
+                ctx.fillText('+100 金币', game.width / 2, game.height / 2 + 35);
+                break;
         }
     });
 }
@@ -675,17 +879,28 @@ function render() {
     
     // 绘制敌人
     game.enemies.forEach(enemy => {
-        ctx.fillStyle = '#e53e3e';
+        // 精英怪光环效果
+        if (enemy.isElite) {
+            ctx.strokeStyle = 'rgba(148, 0, 211, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(enemy.x, enemy.y, enemy.auraRange, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        
+        // 敌人本体
+        ctx.fillStyle = enemy.color || '#e53e3e';
         ctx.beginPath();
         ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2);
         ctx.fill();
         
         // 血条
         const hpPercent = enemy.hp / enemy.maxHp;
+        const barWidth = enemy.size * 2;
         ctx.fillStyle = '#333';
-        ctx.fillRect(enemy.x - 15, enemy.y - enemy.size - 10, 30, 4);
+        ctx.fillRect(enemy.x - enemy.size, enemy.y - enemy.size - 8, barWidth, 4);
         ctx.fillStyle = COLORS.ui.hp;
-        ctx.fillRect(enemy.x - 15, enemy.y - enemy.size - 10, 30 * hpPercent, 4);
+        ctx.fillRect(enemy.x - enemy.size, enemy.y - enemy.size - 8, barWidth * hpPercent, 4);
     });
     
     // 绘制玩家
@@ -796,11 +1011,28 @@ function drawGameUI() {
     ctx.fillStyle = '#fff';
     ctx.font = '16px Microsoft YaHei';
     ctx.textAlign = 'left';
-    ctx.fillText('波次: ' + game.wave, 20, 30);
+    ctx.fillText('第 ' + game.wave + ' 波', 20, 30);
+    
+    // 敌人数量
+    const enemyCount = game.enemies.filter(e => e.alive).length;
+    ctx.fillStyle = '#fff';
+    ctx.font = '14px Microsoft YaHei';
+    ctx.fillText('敌人: ' + enemyCount, 20, 50);
     
     // 金币
     ctx.fillStyle = COLORS.ui.gold;
-    ctx.fillText('💰 ' + game.gold, 20, 55);
+    ctx.font = '16px Microsoft YaHei';
+    ctx.fillText('💰 ' + game.gold, 20, 75);
+    
+    // 波次状态提示
+    if (game.waveState === 'countdown') {
+        ctx.fillStyle = '#ff4444';
+        ctx.font = 'bold 24px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText('下一波即将来袭！', game.width / 2, 60);
+        ctx.font = '20px Microsoft YaHei';
+        ctx.fillText('倒计时: ' + Math.ceil(game.waveCountdown) + '秒', game.width / 2, 90);
+    }
     
     // 绘制虚拟摇杆
     drawJoystick();
