@@ -303,3 +303,51 @@ const shopState = {
     cardShop: [],
     purchasedCards: [] // 已购买的卡牌ID
 };
+
+// 成就数据
+const ACHIEVEMENTS = {
+    // 战斗成就
+    battle: [
+        { id: 'b1', name: '初战告捷', desc: '通关第1波', target: 1, current: 0, reward: 50, icon: '⚔️', type: 'battle', completed: false, claimed: false },
+        { id: 'b2', name: '势如破竹', desc: '通关第5波', target: 5, current: 0, reward: 100, icon: '🏹', type: 'battle', completed: false, claimed: false },
+        { id: 'b3', name: '无人能挡', desc: '通关第10波', target: 10, current: 0, reward: 200, icon: '🗡️', type: 'battle', completed: false, claimed: false },
+        { id: 'b4', name: '坚持不懈', desc: '通关第20波', target: 20, current: 0, reward: 500, icon: '🛡️', type: 'battle', completed: false, claimed: false },
+        { id: 'b5', name: '存活大师', desc: '单次战斗存活30分钟', target: 1800, current: 0, reward: 300, icon: '⏰', type: 'battle', completed: false, claimed: false }
+    ],
+    // 收集成就
+    collect: [
+        { id: 'c1', name: '初次抽卡', desc: '首次进行抽卡', target: 1, current: 0, reward: 20, icon: '🎴', type: 'collect', completed: false, claimed: false },
+        { id: 'c2', name: '角色收集者', desc: '拥有全部3个角色', target: 3, current: 0, reward: 300, icon: '👥', type: 'collect', completed: false, claimed: false },
+        { id: 'c3', name: '卡牌大师', desc: '拥有20张不同卡牌', target: 20, current: 0, reward: 200, icon: '🃏', type: 'collect', completed: false, claimed: false },
+        { id: 'c4', name: '欧皇附体', desc: '抽到传说卡牌', target: 1, current: 0, reward: 100, icon: '🌟', type: 'collect', completed: false, claimed: false }
+    ],
+    // 战斗技巧成就
+    skill: [
+        { id: 's1', name: '击杀之王', desc: '单波击杀30只怪物', target: 30, current: 0, reward: 100, icon: '💀', type: 'skill', completed: false, claimed: false },
+        { id: 's2', name: '无伤通关', desc: '通关时全部满血', target: 1, current: 0, reward: 150, icon: '💖', type: 'skill', completed: false, claimed: false },
+        { id: 's3', name: '暴击达人', desc: '单次战斗暴击50次', target: 50, current: 0, reward: 80, icon: '💥', type: 'skill', completed: false, claimed: false },
+        { id: 's4', name: '技能大师', desc: '单次战斗使用技能100次', target: 100, current: 0, reward: 100, icon: '✨', type: 'skill', completed: false, claimed: false }
+    ],
+    // 资源成就
+    resource: [
+        { id: 'r1', name: '小康之家', desc: '累计拥有500钻石', target: 500, current: 0, reward: 50, icon: '💰', type: 'resource', completed: false, claimed: false },
+        { id: 'r2', name: '富甲一方', desc: '累计拥有5000钻石', target: 5000, current: 0, reward: 200, icon: '🏦', type: 'resource', completed: false, claimed: false },
+        { id: 'r3', name: '钻石王老五', desc: '累计拥有20000钻石', target: 20000, current: 0, reward: 500, icon: '👑', type: 'resource', completed: false, claimed: false }
+    ]
+};
+
+// 成就状态
+const achievementState = {
+    isOpen: false,
+    activeTab: 'all',
+    achievements: JSON.parse(JSON.stringify(ACHIEVEMENTS)), // 深拷贝
+    stats: {
+        totalDiamondEarned: 0,
+        totalKills: 0,
+        totalCrits: 0,
+        totalSkillsUsed: 0,
+        maxWave: 0,
+        survivedTime: 0,
+        waveKills: 0
+    }
+};

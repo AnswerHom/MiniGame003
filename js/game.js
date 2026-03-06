@@ -70,6 +70,20 @@ const game = {
         cardShop: [],
         purchasedCards: [],
         confirmPurchase: null
+    },
+    // 成就系统
+    achievementState: {
+        isOpen: false,
+        activeTab: 'all',
+        stats: {
+            totalDiamondEarned: 0,
+            totalKills: 0,
+            totalCrits: 0,
+            totalSkillsUsed: 0,
+            maxWave: 0,
+            survivedTime: 0,
+            waveKills: 0
+        }
     }
 };
 
@@ -111,6 +125,12 @@ function handleClick(e) {
     const y = e.clientY - rect.top;
     
     if (game.state === 'menu') {
+        // 成就UI点击处理
+        if (game.achievementState.isOpen) {
+            handleAchievementClick(x, y);
+            return;
+        }
+        
         // 商店UI点击处理
         if (game.shopState.isOpen) {
             handleShopClick(x, y);
@@ -417,6 +437,23 @@ function drawMenu() {
     ctx.font = '14px Microsoft YaHei';
     ctx.fillText('商店', game.width - 60, game.height - 27);
     
+    // 成就按钮
+    const unclaimedCount = getUnclaimedAchievements();
+    ctx.fillStyle = '#4a5568';
+    ctx.fillRect(game.width - 180, game.height - 50, 70, 35);
+    ctx.fillStyle = '#fff';
+    ctx.fillText('成就', game.width - 145, game.height - 27);
+    // 角标
+    if (unclaimedCount > 0) {
+        ctx.fillStyle = '#ff4444';
+        ctx.beginPath();
+        ctx.arc(game.width - 115, game.height - 55, 10, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.font = '10px Microsoft YaHei';
+        ctx.fillText(unclaimedCount > 9 ? '9+' : unclaimedCount, game.width - 115, game.height - 51);
+    }
+    
     // 抽卡结果展示
     if (game.gachaState.drawnCards.length > 0) {
         drawGachaResults();
@@ -425,6 +462,11 @@ function drawMenu() {
     // 绘制商店UI
     if (game.shopState.isOpen) {
         drawShopUI();
+    }
+    
+    // 绘制成就UI
+    if (game.achievementState.isOpen) {
+        drawAchievementUI();
     }
 }
 
@@ -730,6 +772,18 @@ function selectCharacter(x, y) {
         y >= game.height - 50 && y <= game.height - 15) {
         openShop();
     }
+    
+    // 检查成就按钮
+    if (x >= game.width - 180 && x <= game.width - 110 &&
+        y >= game.height - 50 && y <= game.height - 15) {
+        openAchievements();
+    }
+}
+
+// 打开成就界面
+function openAchievements() {
+    game.achievementState.isOpen = true;
+    game.achievementState.activeTab = 'all';
 }
 
 // 打开商店
@@ -2046,6 +2100,213 @@ function drawSkillBar() {
         ctx.fillStyle = COLORS.ui.gold;
         ctx.font = '10px Microsoft YaHei';
         ctx.fillText('[' + (index + 1) + ']', x + 35, skillBarY + 45);
+    });
+}
+
+// 获取未领取成就数量
+function getUnclaimedAchievements() {
+    let count = 0;
+    const tabs = ['battle', 'collect', 'skill', 'resource'];
+    tabs.forEach(tab => {
+        if (ACHIEVEMENTS[tab]) {
+            ACHIEVEMENTS[tab].forEach(ach => {
+                if (ach.completed && !ach.claimed) count++;
+            });
+        }
+    });
+    return count;
+}
+
+// 绘制成就UI
+function drawAchievementUI() {
+    const ctx = game.ctx;
+    
+    // 半透明遮罩
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(0, 0, game.width, game.height);
+    
+    // 成就标题
+    ctx.fillStyle = COLORS.ui.gold;
+    ctx.font = 'bold 32px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText('成就', game.width / 2, 60);
+    
+    // 关闭按钮
+    ctx.fillStyle = '#ff4444';
+    ctx.fillRect(game.width - 60, 20, 40, 40);
+    ctx.fillStyle = '#fff';
+    ctx.font = '24px Microsoft YaHei';
+    ctx.fillText('×', game.width - 40, 50);
+    
+    // 标签切换
+    const tabs = ['all', 'battle', 'collect', 'skill', 'resource'];
+    const tabNames = ['全部', '战斗', '收集', '技巧', '资源'];
+    const tabWidth = 60;
+    const startX = game.width / 2 - (tabs.length * tabWidth) / 2;
+    
+    tabs.forEach((tab, i) => {
+        const x = startX + i * tabWidth;
+        ctx.fillStyle = game.achievementState.activeTab === tab ? COLORS.ui.gold : '#4a5568';
+        ctx.fillRect(x, 80, tabWidth - 3, 35);
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px Microsoft YaHei';
+        ctx.fillText(tabNames[i], x + tabWidth / 2 - 1, 104);
+    });
+    
+    // 获取当前标签的成就
+    let achievements = [];
+    if (game.achievementState.activeTab === 'all') {
+        achievements = [...ACHIEVEMENTS.battle, ...ACHIEVEMENTS.collect, ...ACHIEVEMENTS.skill, ...ACHIEVEMENTS.resource];
+    } else {
+        achievements = ACHIEVEMENTS[game.achievementState.activeTab] || [];
+    }
+    
+    // 绘制成就列表
+    const itemHeight = 70;
+    const startY = 130;
+    achievements.forEach((ach, i) => {
+        const y = startY + i * (itemHeight + 10);
+        
+        // 成就背景
+        ctx.fillStyle = ach.completed ? '#1a3a1a' : '#2d3748';
+        ctx.fillRect(20, y, game.width - 40, itemHeight);
+        
+        // 成就图标
+        ctx.fillStyle = '#fff';
+        ctx.font = '28px Microsoft YaHei';
+        ctx.fillText(ach.icon, 50, y + 45);
+        
+        // 成就名称
+        ctx.fillStyle = ach.completed ? '#44ff44' : '#fff';
+        ctx.font = '16px Microsoft YaHei';
+        ctx.textAlign = 'left';
+        ctx.fillText(ach.name, 90, y + 25);
+        
+        // 成就描述
+        ctx.fillStyle = '#aaa';
+        ctx.font = '12px Microsoft YaHei';
+        ctx.fillText(ach.desc, 90, y + 45);
+        
+        // 进度
+        const progress = Math.min(ach.current / ach.target, 1);
+        ctx.fillStyle = '#333';
+        ctx.fillRect(200, y + 35, 150, 10);
+        ctx.fillStyle = ach.completed ? '#44ff44' : COLORS.ui.gold;
+        ctx.fillRect(200, y + 35, 150 * progress, 10);
+        
+        // 进度文字
+        ctx.fillStyle = '#fff';
+        ctx.font = '10px Microsoft YaHei';
+        ctx.fillText(ach.current + '/' + ach.target, 280, y + 43);
+        
+        // 奖励
+        ctx.textAlign = 'right';
+        ctx.fillStyle = COLORS.ui.gold;
+        ctx.font = '14px Microsoft YaHei';
+        ctx.fillText('+' + ach.reward + '💎', game.width - 100, y + 40);
+        
+        // 领取按钮
+        if (ach.completed && !ach.claimed) {
+            ctx.fillStyle = '#44ff44';
+            ctx.fillRect(game.width - 130, y + 20, 80, 30);
+            ctx.fillStyle = '#fff';
+            ctx.font = '14px Microsoft YaHei';
+            ctx.fillText('领取', game.width - 90, y + 40);
+            ach.claimX = game.width - 130;
+            ach.claimY = y + 20;
+            ach.claimW = 80;
+            ach.claimH = 30;
+        } else if (ach.claimed) {
+            ctx.fillStyle = '#666';
+            ctx.font = '14px Microsoft YaHei';
+            ctx.fillText('已领取', game.width - 90, y + 40);
+        }
+    });
+    
+    // 一键领取按钮
+    const unclaimedCount = getUnclaimedAchievements();
+    if (unclaimedCount > 0) {
+        ctx.fillStyle = COLORS.ui.gold;
+        ctx.fillRect(game.width / 2 - 80, game.height - 60, 160, 40);
+        ctx.fillStyle = '#000';
+        ctx.font = '16px Microsoft YaHei';
+        ctx.fillText('一键领取 (' + unclaimedCount + ')', game.width / 2, game.height - 33);
+    }
+    
+    ctx.textAlign = 'left';
+}
+
+// 处理成就点击
+function handleAchievementClick(x, y) {
+    // 检查关闭按钮
+    if (x >= game.width - 60 && x <= game.width - 20 && y >= 20 && y <= 60) {
+        game.achievementState.isOpen = false;
+        return;
+    }
+    
+    // 检查标签切换
+    const tabs = ['all', 'battle', 'collect', 'skill', 'resource'];
+    const tabWidth = 60;
+    const tabStartX = game.width / 2 - (tabs.length * tabWidth) / 2;
+    
+    tabs.forEach((tab, i) => {
+        const tx = tabStartX + i * tabWidth;
+        if (y >= 80 && y <= 115 && x >= tx && x <= tx + tabWidth - 3) {
+            game.achievementState.activeTab = tab;
+        }
+    });
+    
+    // 检查领取按钮
+    let achievements = [];
+    if (game.achievementState.activeTab === 'all') {
+        achievements = [...ACHIEVEMENTS.battle, ...ACHIEVEMENTS.collect, ...ACHIEVEMENTS.skill, ...ACHIEVEMENTS.resource];
+    } else {
+        achievements = ACHIEVEMENTS[game.achievementState.activeTab] || [];
+    }
+    
+    const itemHeight = 70;
+    const startY = 130;
+    
+    achievements.forEach((ach, i) => {
+        if (ach.completed && !ach.claimed && ach.claimX) {
+            if (x >= ach.claimX && x <= ach.claimX + ach.claimW &&
+                y >= ach.claimY && y <= ach.claimY + ach.claimH) {
+                // 领取奖励
+                game.diamond += ach.reward;
+                ach.claimed = true;
+            }
+        }
+    });
+    
+    // 一键领取
+    const unclaimedCount = getUnclaimedAchievements();
+    if (unclaimedCount > 0 &&
+        x >= game.width / 2 - 80 && x <= game.width / 2 + 80 &&
+        y >= game.height - 60 && y <= game.height - 20) {
+        // 一键领取所有
+        ['battle', 'collect', 'skill', 'resource'].forEach(tab => {
+            ACHIEVEMENTS[tab].forEach(ach => {
+                if (ach.completed && !ach.claimed) {
+                    game.diamond += ach.reward;
+                    ach.claimed = true;
+                }
+            });
+        });
+    }
+}
+
+// 更新成就进度
+function updateAchievement(type, value) {
+    ['battle', 'collect', 'skill', 'resource'].forEach(tab => {
+        ACHIEVEMENTS[tab].forEach(ach => {
+            if (ach.type === type && !ach.completed) {
+                ach.current += value;
+                if (ach.current >= ach.target) {
+                    ach.current = ach.target;
+                    ach.completed = true;
+                }
+            }
+        });
     });
 }
 
