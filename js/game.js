@@ -35,6 +35,9 @@ function initGame() {
     
     // 点击开始游戏
     game.canvas.addEventListener('click', handleClick);
+    
+    // 键盘事件
+    window.addEventListener('keydown', handleKeyDown);
 }
 
 // 调整画布大小
@@ -57,6 +60,61 @@ function handleClick(e) {
     } else if (game.state === 'playing') {
         // 移动玩家
         movePlayer(x, y);
+    }
+}
+
+// 处理键盘
+function handleKeyDown(e) {
+    if (game.state !== 'playing') return;
+    
+    const player = game.players[0];
+    if (!player || !player.alive) return;
+    
+    // 技能快捷键 1, 2, 3
+    if (e.key === '1' || e.key === '2' || e.key === '3') {
+        const skillIndex = parseInt(e.key) - 1;
+        if (player.skills[skillIndex]) {
+            usePlayerSkill(player, player.skills[skillIndex]);
+        }
+    }
+}
+
+// 使用玩家技能
+function usePlayerSkill(player, skillName) {
+    const skill = SKILLS[skillName];
+    if (!skill) return;
+    
+    // 检查冷却
+    if (player.skillCooldowns && player.skillCooldowns[skillName] > 0) {
+        return;
+    }
+    
+    // 初始化冷却
+    if (!player.skillCooldowns) {
+        player.skillCooldowns = {};
+    }
+    player.skillCooldowns[skillName] = skill.cooldown;
+    
+    switch (skill.type) {
+        case 'heal':
+            // 治疗范围内队友
+            SkillManager.useHealSkill(skill, player, game.players);
+            break;
+        case 'shield':
+            // 为范围内队友套护盾
+            SkillManager.useShieldSkill(skill, player, game.players);
+            break;
+        case 'revive':
+            // 复活死亡队友
+            SkillManager.useReviveSkill(skill, player, game.players);
+            break;
+        case 'attack':
+        case 'aoe':
+            const target = findNearestEnemy(player);
+            if (target) {
+                SkillManager.useAttackSkill(skill, player, [target]);
+            }
+            break;
     }
 }
 
@@ -152,6 +210,7 @@ function createPlayer(characterName) {
         targetX: game.width / 2,
         targetY: game.height / 2,
         skills: char.skills,
+        skillCooldowns: {},
         lastAttack: 0,
         alive: true,
         shield: 0
@@ -185,6 +244,15 @@ function update(dt) {
     // 更新玩家
     game.players.forEach(player => {
         if (!player.alive) return;
+        
+        // 更新技能冷却
+        if (player.skillCooldowns) {
+            for (let skillName in player.skillCooldowns) {
+                if (player.skillCooldowns[skillName] > 0) {
+                    player.skillCooldowns[skillName] -= dt;
+                }
+            }
+        }
         
         // 移动
         const dx = player.targetX - player.x;
@@ -262,6 +330,12 @@ function update(dt) {
     
     // 清理死亡单位
     game.enemies = game.enemies.filter(e => e.alive);
+    
+    // 更新特效
+    game.effects = game.effects.filter(e => {
+        e.life -= dt;
+        return e.life > 0;
+    });
 }
 
 // 查找最近敌人
@@ -332,10 +406,37 @@ function playerAttack(player, target) {
 
 // 敌人攻击
 function enemyAttack(enemy, target) {
-    target.hp -= enemy.attack;
-    if (target.hp <= 0) {
-        target.alive = false;
-    }
+    // 使用角色的受伤方法（处理护盾）
+    target.takeDamage(enemy.attack);
+}
+
+// 渲染特效
+function renderEffects() {
+    const ctx = game.ctx;
+    
+    game.effects.forEach(effect => {
+        switch (effect.type) {
+            case 'heal':
+                ctx.fillStyle = `rgba(68, 255, 68, ${effect.life})`;
+                ctx.font = '16px Microsoft YaHei';
+                ctx.textAlign = 'center';
+                ctx.fillText('+' + Math.floor(effect.value), effect.x, effect.y - 30);
+                break;
+            case 'shield':
+                ctx.strokeStyle = `rgba(135, 206, 235, ${effect.life})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(effect.x, effect.y, 25, 0, Math.PI * 2);
+                ctx.stroke();
+                break;
+            case 'revive':
+                ctx.fillStyle = `rgba(255, 215, 0, ${effect.life})`;
+                ctx.font = '20px Microsoft YaHei';
+                ctx.textAlign = 'center';
+                ctx.fillText('复活!', effect.x, effect.y - 30);
+                break;
+        }
+    });
 }
 
 // 渲染
@@ -383,6 +484,19 @@ function render() {
         ctx.fillRect(player.x - 20, player.y - 25, 40, 5);
         ctx.fillStyle = COLORS.ui.hp;
         ctx.fillRect(player.x - 20, player.y - 25, 40 * hpPercent, 5);
+        
+        // 护盾显示
+        if (player.shield > 0) {
+            ctx.strokeStyle = COLORS.ui.spirit;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, 25, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            ctx.fillStyle = COLORS.ui.spirit;
+            ctx.font = '10px Microsoft YaHei';
+            ctx.fillText('盾:' + Math.floor(player.shield), player.x, player.y + 35);
+        }
     });
     
     // 绘制投射物
@@ -392,6 +506,9 @@ function render() {
         ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
         ctx.fill();
     });
+    
+    // 绘制特效
+    renderEffects();
     
     // UI信息
     drawGameUI();
@@ -410,6 +527,49 @@ function drawGameUI() {
     // 金币
     ctx.fillStyle = COLORS.ui.gold;
     ctx.fillText('💰 ' + game.gold, 20, 55);
+    
+    // 绘制技能栏
+    drawSkillBar();
+}
+
+// 绘制技能栏
+function drawSkillBar() {
+    const ctx = game.ctx;
+    const player = game.players[0];
+    if (!player || !player.alive) return;
+    
+    const skillBarX = game.width / 2 - 120;
+    const skillBarY = game.height - 80;
+    
+    player.skills.forEach((skillName, index) => {
+        const x = skillBarX + index * 80;
+        const skill = SKILLS[skillName];
+        const cooldown = player.skillCooldowns ? (player.skillCooldowns[skillName] || 0) : 0;
+        
+        // 技能框
+        ctx.fillStyle = cooldown > 0 ? '#555' : '#4a5568';
+        ctx.fillRect(x, skillBarY, 70, 50);
+        
+        // 技能名称
+        ctx.fillStyle = '#fff';
+        ctx.font = '12px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText(skillName, x + 35, skillBarY + 20);
+        
+        // 冷却显示
+        if (cooldown > 0) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(x, skillBarY, 70, 50 * (cooldown / skill.cooldown));
+            ctx.fillStyle = '#fff';
+            ctx.font = '14px Microsoft YaHei';
+            ctx.fillText(cooldown.toFixed(1), x + 35, skillBarY + 35);
+        }
+        
+        // 快捷键提示
+        ctx.fillStyle = COLORS.ui.gold;
+        ctx.font = '10px Microsoft YaHei';
+        ctx.fillText('[' + (index + 1) + ']', x + 35, skillBarY + 45);
+    });
 }
 
 // 页面加载完成后初始化

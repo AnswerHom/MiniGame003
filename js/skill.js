@@ -47,35 +47,73 @@ const SkillManager = {
         }
     },
     
-    // 治疗技能
+    // 治疗技能 - 只治疗范围内的队友
     useHealSkill(skill, caster, targets) {
         const healAmount = caster.attack * skill.healPercent;
         
-        targets.forEach(target => {
-            if (target.alive) {
-                target.heal(healAmount);
-            }
+        // 筛选范围内的队友
+        const inRangeTargets = targets.filter(target => {
+            if (!target.alive) return false;
+            const dx = target.x - caster.x;
+            const dy = target.y - caster.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            return dist <= skill.range;
+        });
+        
+        inRangeTargets.forEach(target => {
+            target.heal(healAmount);
+            // 添加治疗特效
+            game.effects.push({
+                type: 'heal',
+                x: target.x,
+                y: target.y,
+                value: healAmount,
+                life: 1
+            });
         });
     },
     
-    // 护盾技能
+    // 护盾技能 - 只给范围内的队友套护盾
     useShieldSkill(skill, caster, targets) {
         const shieldAmount = caster.maxHp * skill.shieldPercent;
         
-        targets.forEach(target => {
-            if (target.alive) {
-                target.addShield(shieldAmount);
-            }
+        // 筛选范围内的队友
+        const inRangeTargets = targets.filter(target => {
+            if (!target.alive) return false;
+            const dx = target.x - caster.x;
+            const dy = target.y - caster.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            return dist <= skill.range;
+        });
+        
+        inRangeTargets.forEach(target => {
+            target.addShield(shieldAmount);
+            // 添加护盾特效
+            game.effects.push({
+                type: 'shield',
+                x: target.x,
+                y: target.y,
+                value: shieldAmount,
+                life: 1
+            });
         });
     },
     
-    // 复活技能
+    // 复活技能 - 复活死亡队友
     useReviveSkill(skill, caster, targets) {
         // 复活第一个死亡队友
         const deadTarget = targets.find(t => !t.alive);
         if (deadTarget) {
             deadTarget.alive = true;
             deadTarget.hp = Math.floor(deadTarget.maxHp * 0.5);
+            deadTarget.shield = 0;
+            // 添加复活特效
+            game.effects.push({
+                type: 'revive',
+                x: deadTarget.x,
+                y: deadTarget.y,
+                life: 1
+            });
         }
     }
 };
