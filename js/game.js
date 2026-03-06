@@ -23,7 +23,11 @@ const game = {
         drawCount: 0,
         isDrawing: false,
         drawnCards: [],
-        selectedCard: null
+        drawnCardsList: [], // 抽卡时获得的卡牌展示
+        selectedCard: null,
+        // 卡牌系统
+        cardInventory: {}, // 卡牌库存 {卡牌名: 数量}
+        equippedCards: {}  // 已装备卡牌 {角色名: [卡牌1, 卡牌2, 卡牌3]}
     },
     // 波次系统
     waveState: 'waiting', // waiting, spawning, countdown, playing, complete
@@ -386,6 +390,32 @@ function drawGachaResults() {
         ctx.fillText(card, x, y + 55);
     });
     
+    // 绘制获得的卡牌
+    if (game.gachaState.drawnCardsList && game.gachaState.drawnCardsList.length > 0) {
+        ctx.fillStyle = '#fff';
+        ctx.font = '16px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText('获得卡牌:', game.width / 2, y + 100);
+        
+        const cardList = game.gachaState.drawnCardsList;
+        const cardStartX = game.width / 2 - (cardList.length * 50) / 2;
+        
+        cardList.forEach((cardName, i) => {
+            const cx = cardStartX + i * 50;
+            const cy = y + 130;
+            const cardData = CARD_DATA[cardName];
+            
+            // 卡牌背景
+            ctx.fillStyle = CARD_RARITY_COLORS[cardData.rarity];
+            ctx.fillRect(cx - 20, cy - 25, 40, 50);
+            
+            // 卡牌名
+            ctx.fillStyle = '#fff';
+            ctx.font = '8px Microsoft YaHei';
+            ctx.fillText(cardName.substring(0, 4), cx, cy + 5);
+        });
+    }
+    
     // 显示新获得提示
     const newChars = cards.filter(c => !game.gachaState.ownedCharacters.includes(c));
     if (newChars.length > 0) {
@@ -458,6 +488,7 @@ function drawGacha(count) {
     game.diamond -= cost;
     game.gachaState.drawCount += count;
     game.gachaState.drawnCards = [];
+    game.gachaState.drawnCardsList = []; // 抽到的卡牌
     
     const charList = ['李逍遥', '赵灵儿', '阿奴'];
     const newChars = [];
@@ -488,16 +519,51 @@ function drawGacha(count) {
             if (game.players.length < 5) {
                 game.players.push(createPlayer(drawnChar));
             }
+            // 初始化装备卡牌槽位
+            if (!game.gachaState.equippedCards[drawnChar]) {
+                game.gachaState.equippedCards[drawnChar] = [];
+            }
         } else {
-            // 重复角色补偿钻石
+            // 重复角色补偿钻石+3张随机卡牌
             game.diamond += 50;
+            for (let j = 0; j < 3; j++) {
+                const card = getRandomCard();
+                addCardToInventory(card);
+            }
         }
+        
+        // 抽角色附带1张卡牌
+        const card = getRandomCard();
+        addCardToInventory(card);
+        game.gachaState.drawnCardsList.push(card);
     }
     
     // 3秒后清除抽卡结果
     setTimeout(() => {
         game.gachaState.drawnCards = [];
+        game.gachaState.drawnCardsList = [];
     }, 3000);
+}
+
+// 获取随机卡牌
+function getRandomCard() {
+    const allCards = [];
+    // 收集所有卡牌
+    for (let skill in CARDS) {
+        CARDS[skill].forEach(cardName => {
+            allCards.push(cardName);
+        });
+    }
+    // 随机抽取
+    return allCards[Math.floor(Math.random() * allCards.length)];
+}
+
+// 添加卡牌到库存
+function addCardToInventory(cardName) {
+    if (!game.gachaState.cardInventory[cardName]) {
+        game.gachaState.cardInventory[cardName] = 0;
+    }
+    game.gachaState.cardInventory[cardName]++;
 }
 
 // 创建玩家
