@@ -236,3 +236,36 @@ const CARDS = {
     通用: ['身轻如燕', '铜筋铁骨', '暴击强化', '致命一击'],
     功能: ['冰心玉壶', '观音护体', '起死回生', '灵泉涌现']
 };
+
+// 随机事件数据
+const EVENT_DATA = {
+    // 增益类事件
+    '仙灵祝福': { type: 'buff', effect: 'attack', value: 0.15, duration: 'wave', weight: 8, desc: '全队攻击力+15%', icon: '⚔️' },
+    '体力充沛': { type: 'buff', effect: 'moveSpeed', value: 10, duration: 'wave', weight: 8, desc: '全队移动速度+10%', icon: '👟' },
+    '铜墙铁壁': { type: 'buff', effect: 'damageReduction', value: 0.15, duration: 'wave', weight: 8, desc: '全队受到的伤害-15%', icon: '🛡️' },
+    '鸿运当头': { type: 'buff', effect: 'critRate', value: 0.1, duration: 'wave', weight: 8, desc: '暴击率+10%', icon: '⭐' },
+    '灵泉涌现': { type: 'buff', effect: 'regen', value: 0.01, duration: 'wave', weight: 8, desc: '全队每秒回复1%生命', icon: '💚' },
+    
+    // 资源类事件
+    '宝箱奖励': { type: 'resource', effect: 'diamond', value: 50, weight: 10, desc: '获得50钻石', icon: '📦' },
+    '金币大礼包': { type: 'resource', effect: 'gold', value: 200, weight: 10, desc: '获得200金币', icon: '💰' },
+    '神秘商人': { type: 'resource', effect: 'shop', value: 100, weight: 5, desc: '消耗100金币抽取1张随机卡牌', icon: '🧙' },
+    
+    // 挑战类事件
+    '精英怪突袭': { type: 'challenge', effect: 'eliteSpawn', value: 1, weight: 7, desc: '击杀精英怪获得100金币', icon: '👹' },
+    '限时挑战': { type: 'challenge', effect: 'timeChallenge', value: 30, weight: 7, desc: '30秒内击杀10只怪奖励100钻石', icon: '⏱️' },
+    '生命考验': { type: 'challenge', effect: 'hpTest', value: 0.2, weight: 6, desc: '扣除20%生命获得50钻石', icon: '💉' },
+    
+    // 特殊类事件
+    '角色召唤': { type: 'special', effect: 'summon', value: 1, weight: 5, desc: '随机召唤1个已有角色', icon: '🎭' },
+    '技能强化': { type: 'special', effect: 'skillBuff', value: 0.2, weight: 5, desc: '随机技能冷却-20%', icon: '✨' },
+    '休息整顿': { type: 'special', effect: 'fullHeal', value: 1, weight: 5, desc: '清除负面状态，全队回满血', icon: '🏥' }
+};
+
+// 事件类型权重
+const EVENT_WEIGHTS = {
+    buff: 40,
+    resource: 25,
+    challenge: 20,
+    special: 15
+};

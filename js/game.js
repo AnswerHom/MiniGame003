@@ -30,13 +30,29 @@ const game = {
         equippedCards: {}  // 已装备卡牌 {角色名: [卡牌1, 卡牌2, 卡牌3]}
     },
     // 波次系统
-    waveState: 'waiting', // waiting, spawning, countdown, playing, complete
+    waveState: 'waiting', // waiting, spawning, countdown, playing, complete, event
     waveTimer: 0,
     waveCountdown: 3,
     waveEnemiesRemaining: 0,
     waveEnemiesSpawned: 0,
     waveSpawnTimer: 0,
     enemiesToSpawn: 0,
+    // 随机事件系统
+    eventState: {
+        active: false,
+        events: [],
+        selectedEvent: null,
+        timer: 5,
+        isPaused: false,
+        // 当前波次增益
+        buffs: {
+            attack: 0,
+            moveSpeed: 0,
+            damageReduction: 0,
+            critRate: 0,
+            regen: 0
+        }
+    },
     // 虚拟摇杆
     joystick: {
         active: false,
@@ -89,8 +105,39 @@ function handleClick(e) {
         // 选择角色开始游戏
         selectCharacter(x, y);
     } else if (game.state === 'playing') {
-        // 移动玩家
-        movePlayer(x, y);
+        // 检查是否在事件状态
+        if (game.waveState === 'event' && game.eventState.active) {
+            // 检查是否点击事件卡片
+            handleEventClick(x, y);
+        } else {
+            // 移动玩家
+            movePlayer(x, y);
+        }
+    }
+}
+
+// 处理事件卡片点击
+function handleEventClick(x, y) {
+    const events = game.eventState.events;
+    
+    for (let i = 0; i < events.length; i++) {
+        const event = events[i];
+        if (event.x && event.y) {
+            if (x >= event.x && x <= event.x + event.width &&
+                y >= event.y && y <= event.y + event.height) {
+                // 应用事件
+                applyEvent(event.name);
+                
+                // 进入下一波
+                game.wave++;
+                game.waveState = 'countdown';
+                game.waveCountdown = 3;
+                game.waveTimer = 15;
+                game.eventState.active = false;
+                game.eventState.selectedEvent = event.name;
+                break;
+            }
+        }
     }
 }
 
@@ -813,6 +860,21 @@ function updateWaveSystem(dt) {
                 completeWave();
             }
             break;
+            
+        case 'event':
+            // 事件阶段 - 更新倒计时
+            if (!game.eventState.selectedEvent) {
+                game.eventState.timer -= dt;
+                if (game.eventState.timer <= 0) {
+                    // 超时未选择，跳过事件
+                    game.wave++;
+                    game.waveState = 'countdown';
+                    game.waveCountdown = 3;
+                    game.waveTimer = 15;
+                    game.eventState.active = false;
+                }
+            }
+            break;
     }
 }
 
@@ -926,11 +988,192 @@ function completeWave() {
         life: 2
     });
     
-    // 进入下一波
-    game.wave++;
-    game.waveState = 'countdown';
-    game.waveCountdown = 3;
-    game.waveTimer = 15;
+    // 清除上一波的增益
+    game.eventState.buffs = {
+        attack: 0,
+        moveSpeed: 0,
+        damageReduction: 0,
+        critRate: 0,
+        regen: 0
+    };
+    
+    // 60%概率触发随机事件
+    if (Math.random() < 0.6) {
+        // 进入事件状态
+        game.waveState = 'event';
+        game.eventState.active = true;
+        game.eventState.timer = 5;
+        game.eventState.events = generateRandomEvents(3);
+        game.eventState.selectedEvent = null;
+    } else {
+        // 直接进入下一波
+        game.wave++;
+        game.waveState = 'countdown';
+        game.waveCountdown = 3;
+        game.waveTimer = 15;
+    }
+}
+
+// 生成随机事件
+function generateRandomEvents(count) {
+    const events = [];
+    const eventNames = Object.keys(EVENT_DATA);
+    
+    // 按权重选择事件类型
+    const types = ['buff', 'resource', 'challenge', 'special'];
+    const typeWeights = [EVENT_WEIGHTS.buff, EVENT_WEIGHTS.resource, EVENT_WEIGHTS.challenge, EVENT_WEIGHTS.special];
+    
+    for (let i = 0; i < count; i++) {
+        // 随机选择事件类型
+        let rand = Math.random() * 100;
+        let selectedType = types[0];
+        let accumulated = 0;
+        
+        for (let j = 0; j < types.length; j++) {
+            accumulated += typeWeights[j];
+            if (rand < accumulated) {
+                selectedType = types[j];
+                break;
+            }
+        }
+        
+        // 从该类型中选择随机事件
+        const typeEvents = eventNames.filter(name => EVENT_DATA[name].type === selectedType);
+        if (typeEvents.length > 0) {
+            const eventName = typeEvents[Math.floor(Math.random() * typeEvents.length)];
+            events.push(eventName);
+        } else {
+            // 如果没有对应类型，随机选一个
+            events.push(eventNames[Math.floor(Math.random() * eventNames.length)]);
+        }
+    }
+    
+    return events;
+}
+
+// 应用事件效果
+function applyEvent(eventName) {
+    const event = EVENT_DATA[eventName];
+    if (!event) return;
+    
+    switch (event.effect) {
+        case 'diamond':
+            game.diamond += event.value;
+            break;
+        case 'gold':
+            game.gold += event.value;
+            break;
+        case 'shop':
+            if (game.gold >= event.value) {
+                game.gold -= event.value;
+                const card = getRandomCard();
+                addCardToInventory(card);
+            }
+            break;
+        case 'attack':
+            game.eventState.buffs.attack += event.value;
+            break;
+        case 'moveSpeed':
+            game.eventState.buffs.moveSpeed += event.value;
+            break;
+        case 'damageReduction':
+            game.eventState.buffs.damageReduction += event.value;
+            break;
+        case 'critRate':
+            game.eventState.buffs.critRate += event.value;
+            break;
+        case 'regen':
+            game.eventState.buffs.regen += event.value;
+            break;
+        case 'eliteSpawn':
+            // 生成精英怪
+            spawnEliteEnemy();
+            break;
+        case 'timeChallenge':
+            // 限时挑战 - 记录开始时间
+            game.eventState.timeChallengeStart = game.time;
+            game.eventState.timeChallengeTarget = 10;
+            game.eventState.timeChallengeCount = 0;
+            break;
+        case 'hpTest':
+            // 扣除生命获得钻石
+            game.players.forEach(player => {
+                if (player.alive) {
+                    player.hp = Math.floor(player.hp * (1 - event.value));
+                }
+            });
+            game.diamond += 50;
+            break;
+        case 'summon':
+            // 召唤已有角色
+            const ownedChars = game.gachaState.ownedCharacters;
+            if (ownedChars.length > 0 && game.players.length < 5) {
+                const randomChar = ownedChars[Math.floor(Math.random() * ownedChars.length)];
+                game.players.push(createPlayer(randomChar));
+            }
+            break;
+        case 'skillBuff':
+            // 随机技能冷却减少
+            if (game.players.length > 0) {
+                const player = game.players[0];
+                if (player.skills && player.skillCooldowns) {
+                    const skillName = player.skills[Math.floor(Math.random() * player.skills.length)];
+                    if (player.skillCooldowns[skillName]) {
+                        player.skillCooldowns[skillName] *= (1 - event.value);
+                    }
+                }
+            }
+            break;
+        case 'fullHeal':
+            // 全队回满血
+            game.players.forEach(player => {
+                if (player.alive) {
+                    player.hp = player.maxHp;
+                    player.shield = 0;
+                }
+            });
+            break;
+    }
+    
+    // 显示事件完成特效
+    game.effects.push({
+        type: 'eventComplete',
+        eventName: eventName,
+        life: 2
+    });
+}
+
+// 生成精英怪
+function spawnEliteEnemy() {
+    const side = Math.floor(Math.random() * 4);
+    let x, y;
+    const buffer = 100;
+    
+    switch (side) {
+        case 0: x = Math.random() * game.width; y = -buffer; break;
+        case 1: x = Math.random() * game.width; y = game.height + buffer; break;
+        case 2: x = -buffer; y = Math.random() * game.height; break;
+        case 3: x = game.width + buffer; y = Math.random() * game.height; break;
+    }
+    
+    game.enemies.push({
+        x: x,
+        y: y,
+        hp: 300,
+        maxHp: 300,
+        attack: 40,
+        moveSpeed: 40,
+        attackRange: 30,
+        attackInterval: 1.5,
+        lastAttack: 0,
+        size: 15,
+        color: '#9400D3',
+        alive: true,
+        exp: 20,
+        isElite: true,
+        auraRange: 100,
+        auraSpeedBonus: 0.2
+    });
 }
 
 // 查找最近敌人
@@ -1101,6 +1344,12 @@ function renderEffects() {
                 ctx.fillText('第 ' + effect.wave + ' 波 完成！', game.width / 2, game.height / 2);
                 ctx.font = '20px Microsoft YaHei';
                 ctx.fillText('+100 金币', game.width / 2, game.height / 2 + 35);
+                break;
+            case 'eventComplete':
+                ctx.fillStyle = `rgba(0, 255, 255, ${effect.life})`;
+                ctx.font = 'bold 24px Microsoft YaHei';
+                ctx.textAlign = 'center';
+                ctx.fillText(effect.eventName + ' 已触发！', game.width / 2, game.height / 2 - 30);
                 break;
         }
     });
@@ -1276,6 +1525,75 @@ function drawGameUI() {
     
     // 绘制技能栏
     drawSkillBar();
+    
+    // 绘制随机事件UI
+    if (game.waveState === 'event' && game.eventState.active) {
+        drawEventUI();
+    }
+}
+
+// 绘制随机事件UI
+function drawEventUI() {
+    const ctx = game.ctx;
+    
+    // 半透明遮罩
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, game.width, game.height);
+    
+    // 事件标题
+    ctx.fillStyle = COLORS.ui.gold;
+    ctx.font = 'bold 32px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText('随机事件', game.width / 2, 80);
+    
+    // 倒计时
+    ctx.fillStyle = '#fff';
+    ctx.font = '20px Microsoft YaHei';
+    ctx.fillText('选择事件: ' + Math.ceil(game.eventState.timer) + '秒', game.width / 2, 120);
+    
+    // 绘制事件卡片
+    const events = game.eventState.events;
+    const cardWidth = 180;
+    const cardHeight = 150;
+    const startX = game.width / 2 - (events.length * cardWidth + (events.length - 1) * 20) / 2;
+    const cardY = game.height / 2 - cardHeight / 2;
+    
+    events.forEach((eventName, i) => {
+        const x = startX + i * (cardWidth + 20);
+        const event = EVENT_DATA[eventName];
+        
+        // 卡片背景
+        ctx.fillStyle = '#2d3748';
+        ctx.fillRect(x, cardY, cardWidth, cardHeight);
+        
+        // 卡片边框
+        ctx.strokeStyle = CARD_RARITY_COLORS[event.type === 'buff' ? '普通' : event.type === 'resource' ? '稀有' : event.type === 'challenge' ? '史诗' : '传说'];
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x, cardY, cardWidth, cardHeight);
+        
+        // 事件图标
+        ctx.fillStyle = '#fff';
+        ctx.font = '40px Microsoft YaHei';
+        ctx.fillText(event.icon, x + cardWidth / 2, cardY + 50);
+        
+        // 事件名称
+        ctx.fillStyle = COLORS.ui.gold;
+        ctx.font = '18px Microsoft YaHei';
+        ctx.fillText(eventName, x + cardWidth / 2, cardY + 85);
+        
+        // 事件描述
+        ctx.fillStyle = '#ccc';
+        ctx.font = '14px Microsoft YaHei';
+        ctx.fillText(event.desc, x + cardWidth / 2, cardY + 120);
+        
+        // 存储卡片位置供点击检测
+        game.eventState.events[i] = { name: eventName, x: x, y: cardY, width: cardWidth, height: cardHeight };
+    });
+    
+    // 跳过提示
+    ctx.fillStyle = '#888';
+    ctx.font = '14px Microsoft YaHei';
+    ctx.fillText('点击卡片选择事件，不选择将在5秒后跳过', game.width / 2, game.height / 2 + 120);
 }
 
 // 绘制虚拟摇杆
