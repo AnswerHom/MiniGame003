@@ -269,3 +269,37 @@ const EVENT_WEIGHTS = {
     challenge: 20,
     special: 15
 };
+
+// 商店数据
+const SHOP_DATA = {
+    // 钻石商店
+    diamondShop: [
+        { id: 'd1', name: '钻石礼包1', price: 6, diamonds: 60, icon: '💎' },
+        { id: 'd2', name: '钻石礼包2', price: 30, diamonds: 328, icon: '💎' },
+        { id: 'd3', name: '钻石礼包3', price: 98, diamonds: 1088, icon: '💎' },
+        { id: 'd4', name: '钻石礼包4', price: 198, diamonds: 2288, icon: '💎' },
+        { id: 'd5', name: '钻石礼包5', price: 328, diamonds: 3888, icon: '💎' }
+    ],
+    // 金币商店
+    goldShop: [
+        { id: 'g1', name: '小金币袋', price: 50, gold: 100, icon: '💰' },
+        { id: 'g2', name: '中金币袋', price: 200, gold: 500, icon: '💰' },
+        { id: 'g3', name: '大金币袋', price: 500, gold: 1500, icon: '💰' },
+        { id: 'g4', name: '金币宝箱', price: 1000, gold: 3000, icon: '📦' }
+    ],
+    // 道具商店
+    itemShop: [
+        { id: 'i1', name: '生命药水', price: 50, type: 'heal', value: 0.3, icon: '🧪', desc: '恢复30%生命' },
+        { id: 'i2', name: '复活十字', price: 100, type: 'revive', value: 1, icon: '✝️', desc: '复活1个角色' },
+        { id: 'i3', name: '经验药水', price: 80, type: 'exp', value: 0.5, icon: '📚', desc: '经验+50%' }
+    ]
+};
+
+// 商店状态
+const shopState = {
+    isOpen: false,
+    activeTab: 'diamond', // diamond, gold, card, item
+    cardRefreshTime: 0,
+    cardShop: [],
+    purchasedCards: [] // 已购买的卡牌ID
+};

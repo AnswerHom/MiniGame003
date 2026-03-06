@@ -61,6 +61,15 @@ const game = {
         currentX: 0,
         currentY: 0,
         touchId: null
+    },
+    // 商店系统
+    shopState: {
+        isOpen: false,
+        activeTab: 'diamond',
+        cardRefreshTime: 0,
+        cardShop: [],
+        purchasedCards: [],
+        confirmPurchase: null
     }
 };
 
@@ -102,6 +111,12 @@ function handleClick(e) {
     const y = e.clientY - rect.top;
     
     if (game.state === 'menu') {
+        // 商店UI点击处理
+        if (game.shopState.isOpen) {
+            handleShopClick(x, y);
+            return;
+        }
+        
         // 选择角色开始游戏
         selectCharacter(x, y);
     } else if (game.state === 'playing') {
@@ -395,9 +410,21 @@ function drawMenu() {
         ctx.fillText('开始游戏', game.width / 2, game.height - 27);
     }
     
+    // 商店按钮
+    ctx.fillStyle = '#4a5568';
+    ctx.fillRect(game.width - 100, game.height - 50, 80, 35);
+    ctx.fillStyle = '#fff';
+    ctx.font = '14px Microsoft YaHei';
+    ctx.fillText('商店', game.width - 60, game.height - 27);
+    
     // 抽卡结果展示
     if (game.gachaState.drawnCards.length > 0) {
         drawGachaResults();
+    }
+    
+    // 绘制商店UI
+    if (game.shopState.isOpen) {
+        drawShopUI();
     }
 }
 
@@ -472,6 +499,178 @@ function drawGachaResults() {
     }
 }
 
+// 绘制商店UI
+function drawShopUI() {
+    const ctx = game.ctx;
+    
+    // 半透明遮罩
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(0, 0, game.width, game.height);
+    
+    // 商店标题
+    ctx.fillStyle = COLORS.ui.gold;
+    ctx.font = 'bold 32px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText('商店', game.width / 2, 60);
+    
+    // 关闭按钮
+    ctx.fillStyle = '#ff4444';
+    ctx.fillRect(game.width - 60, 20, 40, 40);
+    ctx.fillStyle = '#fff';
+    ctx.font = '24px Microsoft YaHei';
+    ctx.fillText('×', game.width - 40, 50);
+    
+    // 标签切换
+    const tabs = ['diamond', 'gold', 'card', 'item'];
+    const tabNames = ['钻石商店', '金币商店', '卡牌商店', '道具商店'];
+    const tabWidth = 80;
+    const startX = game.width / 2 - (tabs.length * tabWidth) / 2;
+    
+    tabs.forEach((tab, i) => {
+        const x = startX + i * tabWidth;
+        ctx.fillStyle = game.shopState.activeTab === tab ? COLORS.ui.gold : '#4a5568';
+        ctx.fillRect(x, 80, tabWidth - 5, 40);
+        ctx.fillStyle = '#fff';
+        ctx.font = '14px Microsoft YaHei';
+        ctx.fillText(tabNames[i], x + tabWidth / 2 - 2, 107);
+    });
+    
+    // 绘制商品
+    let products = [];
+    switch (game.shopState.activeTab) {
+        case 'diamond':
+            products = SHOP_DATA.diamondShop;
+            break;
+        case 'gold':
+            products = SHOP_DATA.goldShop;
+            break;
+        case 'card':
+            products = game.shopState.cardShop;
+            break;
+        case 'item':
+            products = SHOP_DATA.itemShop;
+            break;
+    }
+    
+    // 绘制商品卡片
+    const cardWidth = 150;
+    const cardHeight = 120;
+    const cols = 3;
+    const startY = 150;
+    
+    products.forEach((product, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const x = game.width / 2 - (cols * cardWidth + (cols - 1) * 20) / 2 + col * (cardWidth + 20);
+        const y = startY + row * (cardHeight + 20);
+        
+        // 卡片背景
+        ctx.fillStyle = '#2d3748';
+        ctx.fillRect(x, y, cardWidth, cardHeight);
+        
+        // 商品图标
+        ctx.fillStyle = '#fff';
+        ctx.font = '32px Microsoft YaHei';
+        ctx.fillText(product.icon || '📦', x + cardWidth / 2, y + 40);
+        
+        // 商品名称
+        ctx.fillStyle = '#fff';
+        ctx.font = '14px Microsoft YaHei';
+        ctx.fillText(product.name, x + cardWidth / 2, y + 65);
+        
+        // 商品描述
+        if (product.desc) {
+            ctx.fillStyle = '#aaa';
+            ctx.font = '10px Microsoft YaHei';
+            ctx.fillText(product.desc, x + cardWidth / 2, y + 80);
+        }
+        
+        // 价格/购买按钮
+        let price = product.price;
+        let priceText = '';
+        
+        if (game.shopState.activeTab === 'diamond') {
+            priceText = price + '元';
+        } else if (game.shopState.activeTab === 'card') {
+            priceText = price + '钻';
+        } else {
+            priceText = price + (game.shopState.activeTab === 'gold' ? '金币' : '钻');
+        }
+        
+        // 检查是否可以购买
+        let canBuy = false;
+        if (game.shopState.activeTab === 'diamond') {
+            canBuy = true; // 钻石商店直接购买
+        } else if (game.shopState.activeTab === 'gold') {
+            canBuy = game.gold >= price;
+        } else if (game.shopState.activeTab === 'card') {
+            canBuy = game.diamond >= price && !game.shopState.purchasedCards.includes(product.id);
+        } else {
+            canBuy = game.diamond >= price;
+        }
+        
+        ctx.fillStyle = canBuy ? '#44ff44' : '#555';
+        ctx.fillRect(x + 10, y + cardHeight - 35, cardWidth - 20, 30);
+        ctx.fillStyle = '#fff';
+        ctx.font = '14px Microsoft YaHei';
+        ctx.fillText(priceText, x + cardWidth / 2, y + cardHeight - 14);
+        
+        // 存储商品位置
+        product.x = x;
+        product.y = y;
+        product.width = cardWidth;
+        product.height = cardHeight;
+    });
+    
+    // 卡牌商店刷新按钮
+    if (game.shopState.activeTab === 'card') {
+        const refreshCost = 10;
+        const canRefresh = game.diamond >= refreshCost;
+        
+        ctx.fillStyle = canRefresh ? '#4a90d9' : '#555';
+        ctx.fillRect(game.width / 2 - 60, game.height - 80, 120, 40);
+        ctx.fillStyle = '#fff';
+        ctx.font = '14px Microsoft YaHei';
+        ctx.fillText('刷新 ' + refreshCost + '💎', game.width / 2, game.height - 53);
+    }
+    
+    // 购买确认弹窗
+    if (game.shopState.confirmPurchase) {
+        const item = game.shopState.confirmPurchase;
+        
+        // 弹窗背景
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+        ctx.fillRect(game.width / 2 - 150, game.height / 2 - 100, 300, 200);
+        
+        // 标题
+        ctx.fillStyle = COLORS.ui.gold;
+        ctx.font = '20px Microsoft YaHei';
+        ctx.fillText('确认购买', game.width / 2, game.height / 2 - 60);
+        
+        // 商品信息
+        ctx.fillStyle = '#fff';
+        ctx.font = '16px Microsoft YaHei';
+        ctx.fillText(item.name, game.width / 2, game.height / 2 - 20);
+        
+        // 价格
+        ctx.font = '14px Microsoft YaHei';
+        const priceText = game.shopState.activeTab === 'diamond' ? item.price + '元' : item.price + '钻';
+        ctx.fillText('价格: ' + priceText, game.width / 2, game.height / 2 + 10);
+        
+        // 确认按钮
+        ctx.fillStyle = '#44ff44';
+        ctx.fillRect(game.width / 2 - 100, game.height / 2 + 30, 80, 35);
+        ctx.fillStyle = '#fff';
+        ctx.font = '14px Microsoft YaHei';
+        ctx.fillText('确认', game.width / 2 - 60, game.height / 2 + 54);
+        
+        // 取消按钮
+        ctx.fillStyle = '#ff4444';
+        ctx.fillRect(game.width / 2 + 20, game.height / 2 + 30, 80, 35);
+        ctx.fillText('取消', game.width / 2 + 60, game.height / 2 + 54);
+    }
+}
+
 // 选择角色/抽卡
 function selectCharacter(x, y) {
     const ctx = game.ctx;
@@ -524,6 +723,173 @@ function selectCharacter(x, y) {
         // 开始游戏循环
         game.lastTime = performance.now();
         requestAnimationFrame(gameLoop);
+    }
+    
+    // 检查商店按钮
+    if (x >= game.width - 100 && x <= game.width - 20 &&
+        y >= game.height - 50 && y <= game.height - 15) {
+        openShop();
+    }
+}
+
+// 打开商店
+function openShop() {
+    game.shopState.isOpen = true;
+    game.shopState.activeTab = 'diamond';
+    game.shopState.confirmPurchase = null;
+    
+    // 初始化卡牌商店
+    if (game.shopState.cardShop.length === 0) {
+        refreshCardShop();
+    }
+    
+    // 刷新菜单显示
+    drawMenu();
+}
+
+// 刷新卡牌商店
+function refreshCardShop() {
+    game.shopState.cardShop = [];
+    game.shopState.purchasedCards = [];
+    
+    // 随机抽取6张卡牌
+    const allCards = [];
+    for (let skill in CARDS) {
+        CARDS[skill].forEach(cardName => {
+            allCards.push({ id: cardName, name: cardName, price: 20, icon: '🃏' });
+        });
+    }
+    
+    for (let i = 0; i < 6; i++) {
+        if (allCards.length > 0) {
+            const idx = Math.floor(Math.random() * allCards.length);
+            game.shopState.cardShop.push(allCards[idx]);
+            allCards.splice(idx, 1);
+        }
+    }
+}
+
+// 处理商店点击
+function handleShopClick(x, y) {
+    // 检查关闭按钮
+    if (x >= game.width - 60 && x <= game.width - 20 && y >= 20 && y <= 60) {
+        game.shopState.isOpen = false;
+        game.shopState.confirmPurchase = null;
+        return;
+    }
+    
+    // 检查购买确认弹窗
+    if (game.shopState.confirmPurchase) {
+        const confirmX = game.width / 2;
+        const confirmY = game.height / 2;
+        
+        // 确认按钮
+        if (x >= game.width / 2 - 100 && x <= game.width / 2 - 20 &&
+            y >= confirmY + 30 && y <= confirmY + 65) {
+            purchaseItem(game.shopState.confirmPurchase);
+            game.shopState.confirmPurchase = null;
+            return;
+        }
+        
+        // 取消按钮
+        if (x >= game.width / 2 + 20 && x <= game.width / 2 + 100 &&
+            y >= confirmY + 30 && y <= confirmY + 65) {
+            game.shopState.confirmPurchase = null;
+            return;
+        }
+    }
+    
+    // 检查标签切换
+    const tabs = ['diamond', 'gold', 'card', 'item'];
+    const tabNames = ['钻石商店', '金币商店', '卡牌商店', '道具商店'];
+    const tabWidth = 80;
+    const tabStartX = game.width / 2 - (tabs.length * tabWidth) / 2;
+    
+    tabs.forEach((tab, i) => {
+        const tx = tabStartX + i * tabWidth;
+        if (y >= 80 && y <= 120 && x >= tx && x <= tx + tabWidth - 5) {
+            game.shopState.activeTab = tab;
+            game.shopState.confirmPurchase = null;
+        }
+    });
+    
+    // 检查商品点击
+    let products = [];
+    switch (game.shopState.activeTab) {
+        case 'diamond': products = SHOP_DATA.diamondShop; break;
+        case 'gold': products = SHOP_DATA.goldShop; break;
+        case 'card': products = game.shopState.cardShop; break;
+        case 'item': products = SHOP_DATA.itemShop; break;
+    }
+    
+    products.forEach(product => {
+        if (product.x && product.y) {
+            if (x >= product.x && x <= product.x + product.width &&
+                y >= product.y && y <= product.y + product.height) {
+                // 打开购买确认
+                game.shopState.confirmPurchase = product;
+            }
+        }
+    });
+    
+    // 卡牌商店刷新按钮
+    if (game.shopState.activeTab === 'card') {
+        if (x >= game.width / 2 - 60 && x <= game.width / 2 + 60 &&
+            y >= game.height - 80 && y <= game.height - 40) {
+            if (game.diamond >= 10) {
+                game.diamond -= 10;
+                refreshCardShop();
+            }
+        }
+    }
+}
+
+// 购买商品
+function purchaseItem(item) {
+    const tab = game.shopState.activeTab;
+    
+    if (tab === 'diamond') {
+        // 钻石商店 - 直接获得钻石（模拟）
+        game.diamond += item.diamonds;
+    } else if (tab === 'gold') {
+        if (game.gold >= item.price) {
+            game.gold -= item.price;
+            game.gold += item.gold;
+        }
+    } else if (tab === 'card') {
+        if (game.diamond >= item.price && !game.shopState.purchasedCards.includes(item.id)) {
+            game.diamond -= item.price;
+            game.shopState.purchasedCards.push(item.id);
+            addCardToInventory(item.name);
+        }
+    } else if (tab === 'item') {
+        if (game.diamond >= item.price) {
+            game.diamond -= item.price;
+            
+            // 使用道具
+            if (item.type === 'heal') {
+                // 生命药水
+                game.players.forEach(player => {
+                    if (player.alive) {
+                        player.hp = Math.min(player.hp + player.maxHp * item.value, player.maxHp);
+                    }
+                });
+            } else if (item.type === 'revive') {
+                // 复活十字
+                const deadPlayer = game.players.find(p => !p.alive);
+                if (deadPlayer) {
+                    deadPlayer.alive = true;
+                    deadPlayer.hp = Math.floor(deadPlayer.maxHp * 0.5);
+                }
+            } else if (item.type === 'exp') {
+                // 经验药水 - 暂时只是显示效果
+                game.effects.push({
+                    type: 'expBoost',
+                    value: item.value,
+                    life: 2
+                });
+            }
+        }
     }
 }
 
