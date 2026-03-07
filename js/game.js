@@ -1,12 +1,43 @@
 // ===== 仙剑肉鸽 - 游戏主逻辑 =====
 
+// 地图区域数据
+const MAP_REGIONS = {
+    仙剑岛: {
+        name: '仙剑岛',
+        startWave: 1,
+        endWave: 10,
+        background: '#2d5a3d',
+        decoration: 'flowers',
+        unlocked: true,
+        completed: false
+    },
+    锁妖塔: {
+        name: '锁妖塔',
+        startWave: 11,
+        endWave: 20,
+        background: '#2a2a3a',
+        decoration: 'fire',
+        unlocked: false,
+        completed: false
+    },
+    神木林: {
+        name: '神木林',
+        startWave: 21,
+        endWave: 30,
+        background: '#1a4a3a',
+        decoration: 'fireflies',
+        unlocked: false,
+        completed: false
+    }
+};
+
 // 游戏状态
 const game = {
     canvas: null,
     ctx: null,
     width: 0,
     height: 0,
-    state: 'menu', // menu, lobby, gacha, playing, gameover
+    state: 'menu', // menu, lobby, gacha, playing, gameover, map
     wave: 1,
     gold: 0,
     diamond: 200, // 钻石
@@ -17,6 +48,9 @@ const game = {
     enemies: [],
     projectiles: [],
     effects: [],
+    // 地图系统
+    currentRegion: '仙剑岛',
+    regions: JSON.parse(JSON.stringify(MAP_REGIONS)),
     // 抽卡系统
     gachaState: {
         ownedCharacters: ['李逍遥'], // 初始角色
@@ -96,10 +130,35 @@ function handleClick(e) {
     } else if (game.state === 'gacha') {
         // 点击返回大厅
         game.state = 'lobby';
+    } else if (game.state === 'map') {
+        // 地图交互
+        handleMapClick(x, y);
     } else if (game.state === 'playing') {
         // 移动玩家
         movePlayer(x, y);
     }
+}
+
+// 地图点击处理
+function handleMapClick(x, y) {
+    // 检查区域点击
+    Object.keys(game.regions).forEach(regionName => {
+        const r = game.regions[regionName];
+        if (r.uiX && r.unlocked) {
+            if (x >= r.uiX && x <= r.uiX + r.uiW && 
+                y >= r.uiY && y <= r.uiY + r.uiH) {
+                // 切换区域
+                game.currentRegion = regionName;
+                // 从区域起始波次开始
+                game.wave = game.regions[regionName].startWave;
+                // 重置敌人
+                game.enemies = [];
+                game.projectiles = [];
+                game.effects = [];
+                game.state = 'playing';
+            }
+        }
+    });
 }
 
 // 处理键盘
@@ -288,6 +347,154 @@ function drawMenu() {
     ctx.fillText('点击屏幕开始游戏', game.width / 2, game.height / 2 + 30);
 }
 
+// 绘制大地图
+function drawMap() {
+    const ctx = game.ctx;
+    const region = game.regions[game.currentRegion];
+    
+    // 背景
+    ctx.fillStyle = region.background;
+    ctx.fillRect(0, 0, game.width, game.height);
+    
+    // 装饰效果
+    if (region.decoration === 'flowers') {
+        for (let i = 0; i < 20; i++) {
+            const x = (Date.now() / 50 + i * 50) % game.width;
+            const y = (Date.now() / 30 + i * 40) % game.height;
+            ctx.fillStyle = 'rgba(255, 182, 193, 0.5)';
+            ctx.beginPath();
+            ctx.arc(x, y, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    } else if (region.decoration === 'fire') {
+        for (let i = 0; i < 15; i++) {
+            const x = Math.sin(Date.now() / 1000 + i) * 100 + game.width / 2;
+            const y = Math.cos(Date.now() / 800 + i * 2) * 50 + game.height / 2 + 100;
+            ctx.fillStyle = 'rgba(255, 200, 100, 0.8)';
+            ctx.beginPath();
+            ctx.arc(x, y, 2 + Math.sin(Date.now() / 200 + i) * 1, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    } else if (region.decoration === 'fireflies') {
+        for (let i = 0; i < 25; i++) {
+            const x = (Math.sin(Date.now() / 800 + i * 0.5) * 200 + game.width / 2);
+            const y = (Math.cos(Date.now() / 600 + i * 0.7) * 150 + game.height / 2);
+            ctx.fillStyle = `rgba(100, 255, 100, ${0.3 + Math.sin(Date.now() / 300 + i) * 0.3})`;
+            ctx.beginPath();
+            ctx.arc(x, y, 2 + Math.sin(Date.now() / 200 + i) * 1, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+    
+    // 标题
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 36px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText('选择区域', game.width / 2, 60);
+    
+    // 绘制区域卡片
+    const regions = Object.keys(game.regions);
+    const cardWidth = 200;
+    const cardHeight = 250;
+    const startX = game.width / 2 - (regions.length * cardWidth + (regions.length - 1) * 30) / 2;
+    const cardY = game.height / 2 - cardHeight / 2;
+    
+    regions.forEach((regionName, i) => {
+        const x = startX + i * (cardWidth + 30);
+        const r = game.regions[regionName];
+        
+        // 卡片背景
+        ctx.fillStyle = r.unlocked ? '#3d3d5c' : '#2d2d3c';
+        ctx.fillRect(x, cardY, cardWidth, cardHeight);
+        
+        // 边框
+        ctx.strokeStyle = r.unlocked ? '#ffd700' : '#555';
+        ctx.lineWidth = game.currentRegion === regionName ? 4 : 2;
+        ctx.strokeRect(x, cardY, cardWidth, cardHeight);
+        
+        // 区域名
+        ctx.fillStyle = r.unlocked ? '#ffd700' : '#888';
+        ctx.font = 'bold 24px Microsoft YaHei';
+        ctx.fillText(r.name, x + cardWidth / 2, cardY + 40);
+        
+        // 波次范围
+        ctx.fillStyle = '#aaa';
+        ctx.font = '16px Microsoft YaHei';
+        ctx.fillText(r.startWave + '-' + r.endWave + '波', x + cardWidth / 2, cardY + 80);
+        
+        // 状态
+        if (r.completed) {
+            ctx.fillStyle = '#44ff44';
+            ctx.font = '18px Microsoft YaHei';
+            ctx.fillText('✓ 已通关', x + cardWidth / 2, cardY + 120);
+        } else if (!r.unlocked) {
+            ctx.fillStyle = '#888';
+            ctx.font = '18px Microsoft YaHei';
+            ctx.fillText('🔒 未解锁', x + cardWidth / 2, cardY + 120);
+        } else {
+            ctx.fillStyle = '#4a90d9';
+            ctx.font = '18px Microsoft YaHei';
+            ctx.fillText('进行中', x + cardWidth / 2, cardY + 120);
+        }
+        
+        // 难度星星
+        let stars = '';
+        if (r.endWave <= 10) stars = '⭐';
+        else if (r.endWave <= 20) stars = '⭐⭐';
+        else stars = '⭐⭐⭐';
+        ctx.fillStyle = '#ffd700';
+        ctx.font = '20px Microsoft YaHei';
+        ctx.fillText(stars, x + cardWidth / 2, cardY + 160);
+        
+        // 进入按钮
+        if (r.unlocked) {
+            ctx.fillStyle = r.completed ? '#44aa44' : '#4a90d9';
+            ctx.fillRect(x + 30, cardY + 180, cardWidth - 60, 40);
+            ctx.fillStyle = '#fff';
+            ctx.font = '18px Microsoft YaHei';
+            ctx.fillText(r.completed ? '重复挑战' : '进入', x + cardWidth / 2, cardY + 207);
+        }
+        
+        // 存储位置
+        r.uiX = x;
+        r.uiY = cardY;
+        r.uiW = cardWidth;
+        r.uiH = cardHeight;
+    });
+    
+    // 小地图（右上角）
+    drawMiniMap();
+}
+
+// 绘制小地图
+function drawMiniMap() {
+    const ctx = game.ctx;
+    const mapSize = 80;
+    const mapX = game.width - mapSize - 20;
+    const mapY = 60;
+    
+    // 背景
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillRect(mapX, mapY, mapSize, mapSize);
+    
+    // 区域颜色
+    const region = game.regions[game.currentRegion];
+    ctx.fillStyle = region.background;
+    ctx.fillRect(mapX + 5, mapY + 5, mapSize - 10, mapSize - 10);
+    
+    // 当前区域标记
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath();
+    ctx.arc(mapX + mapSize / 2, mapY + mapSize / 2, 6, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 区域名
+    ctx.fillStyle = '#fff';
+    ctx.font = '10px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText(region.name, mapX + mapSize / 2, mapY + mapSize + 12);
+}
+
 // 绘制大厅
 function drawLobby() {
     const ctx = game.ctx;
@@ -367,6 +574,13 @@ function drawLobby() {
         ctx.font = '24px Microsoft YaHei';
         ctx.fillText('开始战斗', game.width / 2, game.height - 47);
     }
+    
+    // 大地图按钮
+    ctx.fillStyle = '#4a5568';
+    ctx.fillRect(game.width - 120, game.height - 60, 100, 40);
+    ctx.fillStyle = '#fff';
+    ctx.font = '18px Microsoft YaHei';
+    ctx.fillText('大地图', game.width - 70, game.height - 33);
 }
 
 // 获取角色颜色
@@ -477,6 +691,12 @@ function selectCharacter(x, y) {
         x >= game.width / 2 - 80 && x <= game.width / 2 + 80 &&
         y >= game.height - 80 && y <= game.height - 30) {
         startGame();
+    }
+    
+    // 检查大地图按钮
+    if (x >= game.width - 120 && x <= game.width - 20 &&
+        y >= game.height - 60 && y <= game.height - 20) {
+        game.state = 'map';
     }
 }
 
@@ -638,6 +858,8 @@ function gameLoop(timestamp) {
         drawLobby();
     } else if (game.state === 'gacha') {
         drawGachaResults();
+    } else if (game.state === 'map') {
+        drawMap();
     } else if (game.state === 'playing') {
         const deltaTime = (timestamp - game.lastTime) / 1000;
         game.lastTime = timestamp;
@@ -961,6 +1183,20 @@ function completeWave() {
         wave: game.wave,
         life: 2
     });
+    
+    // 检查是否完成当前区域
+    const region = game.regions[game.currentRegion];
+    if (game.wave >= region.endWave) {
+        region.completed = true;
+        
+        // 解锁下一个区域
+        const regionNames = Object.keys(game.regions);
+        const currentIndex = regionNames.indexOf(game.currentRegion);
+        if (currentIndex < regionNames.length - 1) {
+            const nextRegion = regionNames[currentIndex + 1];
+            game.regions[nextRegion].unlocked = true;
+        }
+    }
     
     // 进入下一波
     game.wave++;
@@ -1312,6 +1548,9 @@ function drawGameUI() {
     
     // 绘制技能栏
     drawSkillBar();
+    
+    // 绘制小地图
+    drawMiniMap();
 }
 
 // 绘制虚拟摇杆
