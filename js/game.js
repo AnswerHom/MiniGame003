@@ -13,13 +13,13 @@ const game = {
     time: 0,
     lastTime: 0,
     players: [],
-    team: [], // 队伍配置
+    team: ['李逍遥'], // 队伍配置
     enemies: [],
     projectiles: [],
     effects: [],
     // 抽卡系统
     gachaState: {
-        ownedCharacters: [], // 已拥有的角色
+        ownedCharacters: ['李逍遥'], // 初始角色
         lastDrawTime: 0,
         drawCount: 0,
         isDrawing: false,
