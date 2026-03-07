@@ -898,7 +898,7 @@ function addCardToInventory(cardName) {
 // 创建玩家
 function createPlayer(characterName) {
     const char = CHARACTERS[characterName];
-    return {
+    const player = {
         name: char.name,
         role: char.role,
         hp: char.hp,
@@ -918,8 +918,29 @@ function createPlayer(characterName) {
         skillCooldowns: {},
         lastAttack: 0,
         alive: true,
-        shield: 0
+        shield: 0,
+        // 受伤方法
+        takeDamage: function(damage) {
+            let actualDamage = damage;
+            // 护盾吸收
+            if (this.shield > 0) {
+                if (this.shield >= actualDamage) {
+                    this.shield -= actualDamage;
+                    actualDamage = 0;
+                } else {
+                    actualDamage -= this.shield;
+                    this.shield = 0;
+                }
+            }
+            // 扣血
+            this.hp -= actualDamage;
+            if (this.hp <= 0) {
+                this.hp = 0;
+                this.alive = false;
+            }
+        }
     };
+    return player;
 }
 
 // 移动玩家
