@@ -37,6 +37,21 @@ const game = {
     ctx: null,
     width: 0,
     height: 0,
+    // 世界地图尺寸（比屏幕大50%）
+    worldWidth: 0,
+    worldHeight: 0,
+    // 摄像机系统
+    camera: {
+        x: 0,
+        y: 0,
+        targetX: 0,
+        targetY: 0,
+        delay: 0.3, // 秒
+        smoothing: 0.1,
+        lastUpdate: 0
+    },
+    // 障碍物
+    obstacles: [],
     state: 'menu', // menu, lobby, gacha, playing, gameover, map
     wave: 1,
     gold: 0,
@@ -90,6 +105,20 @@ function initGame() {
     
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
+    
+    // 初始化世界地图尺寸（比屏幕大50%）
+    game.worldWidth = game.width * 1.5;
+    game.worldHeight = game.height * 1.5;
+    
+    // 初始化摄像机
+    game.camera.x = game.width / 2;
+    game.camera.y = game.height / 2;
+    game.camera.targetX = game.camera.x;
+    game.camera.targetY = game.camera.y;
+    game.camera.lastUpdate = performance.now();
+    
+    // 生成障碍物
+    generateObstacles();
     
     // 启动游戏循环
     game.lastTime = performance.now();
@@ -473,6 +502,45 @@ function drawMap() {
 }
 
 // 绘制小地图
+// 绘制障碍物
+function drawObstacles() {
+    const ctx = game.ctx;
+    
+    game.obstacles.forEach(obs => {
+        if (obs.type === 'rock') {
+            // 岩石 - 灰色不规则形状
+            ctx.fillStyle = '#4a4a4a';
+            ctx.beginPath();
+            ctx.arc(obs.x, obs.y, obs.size, 0, Math.PI * 2);
+            ctx.fill();
+            // 阴影
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.beginPath();
+            ctx.arc(obs.x + 3, obs.y + 3, obs.size * 0.8, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (obs.type === 'tree') {
+            // 树木 - 棕色树干 + 绿色树冠
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(obs.x - 5, obs.y, 10, obs.size);
+            ctx.fillStyle = '#228B22';
+            ctx.beginPath();
+            ctx.arc(obs.x, obs.y - obs.size * 0.3, obs.size * 0.8, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (obs.type === 'flower') {
+            // 花丛 - 装饰物
+            ctx.fillStyle = 'rgba(255, 182, 193, 0.5)';
+            for (let i = 0; i < 5; i++) {
+                const angle = (Math.PI * 2 / 5) * i;
+                const x = obs.x + Math.cos(angle) * obs.size * 0.5;
+                const y = obs.y + Math.sin(angle) * obs.size * 0.5;
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+    });
+}
+
 function drawMiniMap() {
     const ctx = game.ctx;
     const mapSize = 80;
@@ -882,7 +950,29 @@ function gameLoop(timestamp) {
 }
 
 // 更新游戏状态
+// 更新摄像机跟随
+function updateCamera(dt) {
+    // 找到主导角色（第一个存活的玩家）
+    const leader = game.players.find(p => p.alive);
+    if (!leader) return;
+    
+    // 延迟更新目标位置
+    game.camera.targetX = leader.x;
+    game.camera.targetY = leader.y;
+    
+    // 平滑跟随
+    game.camera.x += (game.camera.targetX - game.camera.x) * game.camera.smoothing;
+    game.camera.y += (game.camera.targetY - game.camera.y) * game.camera.smoothing;
+    
+    // 边界处理
+    game.camera.x = Math.max(game.width / 2, Math.min(game.worldWidth - game.width / 2, game.camera.x));
+    game.camera.y = Math.max(game.height / 2, Math.min(game.worldHeight - game.height / 2, game.camera.y));
+}
+
 function update(dt) {
+    // 更新摄像机跟随
+    updateCamera(dt);
+    
     // 更新玩家
     game.players.forEach(player => {
         if (!player.alive) return;
@@ -932,6 +1022,16 @@ function update(dt) {
             player.x += (dx / dist) * player.moveSpeed * dt;
             player.y += (dy / dist) * player.moveSpeed * dt;
         }
+        
+        // 障碍物碰撞
+        const obs = checkObstacleCollision(player.x, player.y, player.size);
+        if (obs) {
+            resolveObstacleCollision(player, obs);
+        }
+        
+        // 世界边界限制
+        player.x = Math.max(player.size, Math.min(game.worldWidth - player.size, player.x));
+        player.y = Math.max(player.size, Math.min(game.worldHeight - player.size, player.y));
         
         // 自动攻击
         player.lastAttack += dt;
@@ -986,6 +1086,12 @@ function update(dt) {
             if (dist > enemy.attackRange) {
                 enemy.x += (dx / dist) * currentSpeed * dt;
                 enemy.y += (dy / dist) * currentSpeed * dt;
+                
+                // 障碍物碰撞
+                const obs = checkObstacleCollision(enemy.x, enemy.y, enemy.size);
+                if (obs) {
+                    resolveObstacleCollision(enemy, obs);
+                }
             } else {
                 // 攻击
                 enemy.lastAttack += dt;
@@ -995,6 +1101,10 @@ function update(dt) {
                 }
             }
         }
+        
+        // 世界边界限制
+        enemy.x = Math.max(enemy.size, Math.min(game.worldWidth - enemy.size, enemy.x));
+        enemy.y = Math.max(enemy.size, Math.min(game.worldHeight - enemy.size, enemy.y));
     });
     
     // 更新投射物
@@ -1120,26 +1230,26 @@ function spawnWaveEnemy() {
     const isElite = (game.wave >= 3) && ((game.wave - 3) % 3 === 0) && 
                     (game.waveEnemiesSpawned === 0);
     
-    // 生成位置：屏幕边缘
+    // 生成位置：世界地图边缘
     const side = Math.floor(Math.random() * 4);
     let x, y;
     const buffer = 100;
     
     switch (side) {
         case 0: // 上
-            x = Math.random() * game.width;
+            x = Math.random() * game.worldWidth;
             y = -buffer;
             break;
         case 1: // 下
-            x = Math.random() * game.width;
-            y = game.height + buffer;
+            x = Math.random() * game.worldWidth;
+            y = game.worldHeight + buffer;
             break;
         case 2: // 左
             x = -buffer;
-            y = Math.random() * game.height;
+            y = Math.random() * game.worldHeight;
             break;
         case 3: // 右
-            x = game.width + buffer;
+            x = game.worldWidth + buffer;
             y = Math.random() * game.height;
             break;
     }
@@ -1485,15 +1595,70 @@ function renderEffects() {
 }
 
 // 渲染
+// 生成障碍物
+function generateObstacles() {
+    game.obstacles = [];
+    const count = 30; // 障碍物数量
+    
+    for (let i = 0; i < count; i++) {
+        const type = Math.random() < 0.4 ? 'rock' : (Math.random() < 0.6 ? 'tree' : 'flower');
+        const size = type === 'rock' ? 30 + Math.random() * 20 : 
+                     (type === 'tree' ? 25 + Math.random() * 15 : 20);
+        
+        game.obstacles.push({
+            x: size + Math.random() * (game.worldWidth - size * 2),
+            y: size + Math.random() * (game.worldHeight - size * 2),
+            size: size,
+            type: type
+        });
+    }
+}
+
+// 检查障碍物碰撞
+function checkObstacleCollision(x, y, radius) {
+    for (const obs of game.obstacles) {
+        if (obs.type === 'flower') continue; // 花丛可穿过
+        
+        const dx = x - obs.x;
+        const dy = y - obs.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist < obs.size + radius) {
+            return obs;
+        }
+    }
+    return null;
+}
+
+// 处理障碍物碰撞（推开）
+function resolveObstacleCollision(entity, obstacle) {
+    const dx = entity.x - obstacle.x;
+    const dy = entity.y - obstacle.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    if (dist === 0) return;
+    
+    // 推开到障碍物边缘
+    const pushDist = obstacle.size + entity.size - dist;
+    entity.x += (dx / dist) * pushDist;
+    entity.y += (dy / dist) * pushDist;
+}
+
 function render() {
     const ctx = game.ctx;
+    
+    // 应用摄像机偏移
+    const cameraOffsetX = game.width / 2 - game.camera.x;
+    const cameraOffsetY = game.height / 2 - game.camera.y;
+    ctx.save();
+    ctx.translate(cameraOffsetX, cameraOffsetY);
     
     // 根据区域绘制背景
     const region = game.regions[game.currentRegion];
     
     // 基础背景色
     ctx.fillStyle = region.background;
-    ctx.fillRect(0, 0, game.width, game.height);
+    ctx.fillRect(0, 0, game.worldWidth, game.worldHeight);
     
     // 绘制地面纹理（简化版）
     drawGroundTexture();
@@ -1503,6 +1668,9 @@ function render() {
     
     // 绘制战斗区域边框
     drawBattleArea();
+    
+    // 绘制障碍物
+    drawObstacles();
     
     // 绘制装饰
     drawBattleDecorations();
@@ -1659,6 +1827,9 @@ function render() {
     
     // 绘制特效
     renderEffects();
+    
+    // 恢复摄像机偏移（UI不随摄像机移动）
+    ctx.restore();
     
     // UI信息
     drawGameUI();
