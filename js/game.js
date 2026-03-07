@@ -84,6 +84,19 @@ const game = {
             survivedTime: 0,
             waveKills: 0
         }
+    },
+    // BOSS系统
+    bossState: {
+        active: false,
+        currentBoss: null,
+        boss: null,
+        totalDamage: 0,
+        phase: 1,
+        isInvincible: false,
+        isEnraged: false,
+        lastSkillTime: 0,
+        summonTimer: 0,
+        firstKillReward: {} // 记录首杀奖励
     }
 };
 
@@ -1221,6 +1234,38 @@ function update(dt) {
             }
         });
         
+        // BOSS伤害检测（玩家攻击BOSS）
+        if (p.isCrit === undefined && game.bossState.active && game.bossState.boss && game.bossState.boss.alive) {
+            const boss = game.bossState.boss;
+            const dx = boss.x - p.x;
+            const dy = boss.y - p.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist < boss.size) {
+                // 计算伤害
+                let damage = p.damage;
+                
+                // 检查弱点攻击（简单处理：随机30%几率触发弱点加成）
+                if (Math.random() < 0.3) {
+                    damage *= (1 + boss.weakPointBonus);
+                }
+                
+                // 无敌状态
+                if (!boss.isInvincible) {
+                    boss.hp -= damage;
+                    game.bossState.totalDamage += damage;
+                    
+                    // 检查BOSS死亡
+                    if (boss.hp <= 0) {
+                        boss.alive = false;
+                        defeatBoss();
+                    }
+                }
+                
+                p.life = 0;
+            }
+        }
+        
         return p.life > 0;
     });
     
@@ -1295,11 +1340,25 @@ function updateWaveSystem(dt) {
                 }
             }
             break;
+            
+        case 'boss':
+            // BOSS战阶段
+            if (game.bossState.active && game.bossState.boss && game.bossState.boss.alive) {
+                updateBoss(dt);
+            }
+            break;
     }
 }
 
 // 开始波次
 function startWave() {
+    // 检查是否是BOSS波次（每5波）
+    if (game.wave % 5 === 0 && game.wave > 0) {
+        // 触发BOSS战
+        startBossWave();
+        return;
+    }
+    
     // 计算本波怪物数量和属性
     const baseCount = 5;
     const enemyCount = baseCount + game.wave - 1;
@@ -1316,6 +1375,273 @@ function startWave() {
         wave: game.wave,
         life: 3
     });
+}
+
+// 开始BOSS波次
+function startBossWave() {
+    // 确定BOSS类型
+    let bossName;
+    if (game.wave === 5) {
+        bossName = '毒娘子';
+    } else if (game.wave === 10) {
+        bossName = '赤鬼王';
+    } else if (game.wave === 15 || game.wave >= 20) {
+        bossName = '拜月教主';
+    } else {
+        // 默认使用毒娘子
+        bossName = '毒娘子';
+    }
+    
+    const bossData = BOSS_DATA[bossName];
+    
+    // 创建BOSS
+    game.bossState.active = true;
+    game.bossState.currentBoss = bossName;
+    game.bossState.boss = {
+        name: bossData.name,
+        hp: bossData.hp,
+        maxHp: bossData.hp,
+        attack: bossData.attack,
+        moveSpeed: bossData.moveSpeed,
+        attackRange: bossData.attackRange,
+        attackInterval: bossData.attackInterval,
+        lastAttack: 0,
+        size: bossData.size,
+        color: bossData.color,
+        alive: true,
+        x: game.width / 2,
+        y: -100,
+        targetX: game.width / 2,
+        targetY: game.height / 3,
+        data: bossData,
+        phase: 1,
+        isInvincible: false,
+        isEnraged: false,
+        weakPoint: bossData.weakPoint,
+        weakPointBonus: bossData.weakPointBonus
+    };
+    game.bossState.totalDamage = 0;
+    game.bossState.phase = 1;
+    game.bossState.lastSkillTime = 0;
+    game.bossState.summonTimer = 0;
+    
+    // BOSS提示
+    game.effects.push({
+        type: 'bossStart',
+        bossName: bossName,
+        life: 3
+    });
+    
+    // BOSS战状态
+    game.waveState = 'boss';
+    game.enemiesToSpawn = 0;
+    game.waveEnemiesSpawned = 0;
+}
+
+// 更新BOSS
+function updateBoss(dt) {
+    const boss = game.bossState.boss;
+    if (!boss || !boss.alive) return;
+    
+    // BOSS移动（缓慢向玩家移动）
+    const target = findNearestPlayerForBoss();
+    if (target) {
+        const dx = target.x - boss.x;
+        const dy = target.y - boss.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist > boss.attackRange) {
+            boss.x += (dx / dist) * boss.moveSpeed * dt;
+            boss.y += (dy / dist) * boss.moveSpeed * dt;
+        }
+    }
+    
+    // BOSS攻击
+    boss.lastAttack += dt;
+    if (boss.lastAttack >= boss.attackInterval && !boss.isInvincible) {
+        bossAttack(boss);
+        boss.lastAttack = 0;
+    }
+    
+    // 检查狂暴状态
+    const hpPercent = boss.hp / boss.maxHp;
+    if (hpPercent <= boss.data.enragedThreshold && !boss.isEnraged) {
+        boss.isEnraged = true;
+        boss.attackInterval /= boss.data.enragedMultiplier;
+        game.effects.push({
+            type: 'bossEnrage',
+            life: 2
+        });
+    }
+    
+    // 召唤小怪
+    if (boss.data.summonInterval) {
+        game.bossState.summonTimer += dt;
+        if (game.bossState.summonTimer >= boss.data.summonInterval) {
+            spawnBossMinions(boss.data.summonCount || 3);
+            game.bossState.summonTimer = 0;
+        }
+    }
+    
+    // 无敌时间（拜月教主）
+    if (boss.data.invincibleInterval) {
+        game.bossState.lastSkillTime += dt;
+        if (game.bossState.lastSkillTime >= boss.data.invincibleInterval) {
+            boss.isInvincible = true;
+            setTimeout(() => {
+                if (boss) boss.isInvincible = false;
+            }, boss.data.invincibleDuration * 1000);
+            game.bossState.lastSkillTime = 0;
+        }
+    }
+}
+
+// BOSS攻击
+function bossAttack(boss) {
+    const bossData = boss.data;
+    
+    if (bossData.skill1) {
+        const skill = bossData.skill1;
+        
+        if (skill.type === 'fan') {
+            const target = findNearestPlayerForBoss();
+            if (target) {
+                const angle = Math.atan2(target.y - boss.y, target.x - boss.x);
+                for (let i = -2; i <= 2; i++) {
+                    const spreadAngle = angle + i * (skill.fanAngle / 4) * Math.PI / 180;
+                    game.projectiles.push({
+                        x: boss.x,
+                        y: boss.y,
+                        vx: Math.cos(spreadAngle) * 200,
+                        vy: Math.sin(spreadAngle) * 200,
+                        damage: skill.damage,
+                        isBossProjectile: true,
+                        life: 3
+                    });
+                }
+            }
+        } else if (skill.type === 'circle') {
+            game.enemies.push({
+                x: boss.x,
+                y: boss.y,
+                isBossAOEDamage: true,
+                damage: skill.damage,
+                radius: skill.radius,
+                life: 1
+            });
+        } else if (skill.type === 'projectile') {
+            const target = findNearestPlayerForBoss();
+            if (target) {
+                const dx = target.x - boss.x;
+                const dy = target.y - boss.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                game.projectiles.push({
+                    x: boss.x,
+                    y: boss.y,
+                    vx: (dx / dist) * skill.speed,
+                    vy: (dy / dist) * skill.speed,
+                    damage: skill.damage,
+                    isBossProjectile: true,
+                    life: 5
+                });
+            }
+        }
+    }
+}
+
+// 查找最近的玩家（用于BOSS）
+function findNearestPlayerForBoss() {
+    let nearest = null;
+    let minDist = Infinity;
+    
+    game.players.forEach(player => {
+        if (!player.alive) return;
+        const dx = player.x - game.bossState.boss.x;
+        const dy = player.y - game.bossState.boss.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist < minDist) {
+            minDist = dist;
+            nearest = player;
+        }
+    });
+    
+    return nearest;
+}
+
+// 生成BOSS小怪
+function spawnBossMinions(count) {
+    for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 / count) * i;
+        const dist = 150;
+        
+        game.enemies.push({
+            x: game.bossState.boss.x + Math.cos(angle) * dist,
+            y: game.bossState.boss.y + Math.sin(angle) * dist,
+            hp: 50,
+            maxHp: 50,
+            attack: 15,
+            moveSpeed: 60,
+            attackRange: 30,
+            attackInterval: 1.5,
+            lastAttack: 0,
+            size: 8,
+            color: '#666',
+            alive: true,
+            exp: 5
+        });
+    }
+}
+
+// 击败BOSS
+function defeatBoss() {
+    const bossName = game.bossState.currentBoss;
+    
+    // 检查是否是首杀
+    const isFirstKill = !game.bossState.firstKillReward[bossName];
+    
+    // 发放奖励
+    if (isFirstKill) {
+        game.diamond += 500;
+        game.bossState.firstKillReward[bossName] = true;
+    }
+    
+    // 常规掉落
+    const goldDrop = 200 + Math.floor(Math.random() * 300);
+    game.gold += goldDrop;
+    
+    // 随机卡牌
+    const cardCount = 1 + Math.floor(Math.random() * 2);
+    for (let i = 0; i < cardCount; i++) {
+        const card = getRandomCard();
+        addCardToInventory(card);
+    }
+    
+    // BOSS击败特效
+    game.effects.push({
+        type: 'bossDefeat',
+        bossName: bossName,
+        life: 3
+    });
+    
+    // 显示掉落
+    game.effects.push({
+        type: 'bossDrop',
+        gold: goldDrop,
+        cardCount: cardCount,
+        firstKill: isFirstKill,
+        life: 4
+    });
+    
+    // 清除BOSS状态
+    game.bossState.active = false;
+    game.bossState.boss = null;
+    
+    // 进入下一波
+    game.wave++;
+    game.waveState = 'countdown';
+    game.waveCountdown = 3;
+    game.waveTimer = 15;
 }
 
 // 生成波次敌人
@@ -1771,6 +2097,35 @@ function renderEffects() {
                 ctx.textAlign = 'center';
                 ctx.fillText(effect.eventName + ' 已触发！', game.width / 2, game.height / 2 - 30);
                 break;
+            case 'bossStart':
+                ctx.fillStyle = `rgba(255, 0, 0, ${effect.life})`;
+                ctx.font = 'bold 36px Microsoft YaHei';
+                ctx.textAlign = 'center';
+                ctx.fillText('⚠️ ' + effect.bossName + ' 出现！ ⚠️', game.width / 2, game.height / 2);
+                break;
+            case 'bossDefeat':
+                ctx.fillStyle = `rgba(255, 215, 0, ${effect.life})`;
+                ctx.font = 'bold 32px Microsoft YaHei';
+                ctx.textAlign = 'center';
+                ctx.fillText(effect.bossName + ' 被击败！', game.width / 2, game.height / 2 - 40);
+                break;
+            case 'bossDrop':
+                ctx.fillStyle = `rgba(255, 255, 255, ${effect.life})`;
+                ctx.font = '20px Microsoft YaHei';
+                ctx.textAlign = 'center';
+                ctx.fillText('获得: ' + effect.gold + '金币', game.width / 2, game.height / 2 + 10);
+                ctx.fillText('+' + effect.cardCount + '张卡牌', game.width / 2, game.height / 2 + 40);
+                if (effect.firstKill) {
+                    ctx.fillStyle = `rgba(255, 215, 0, ${effect.life})`;
+                    ctx.fillText('首杀奖励 +500💎', game.width / 2, game.height / 2 + 70);
+                }
+                break;
+            case 'bossEnrage':
+                ctx.fillStyle = `rgba(255, 0, 0, ${effect.life})`;
+                ctx.font = 'bold 28px Microsoft YaHei';
+                ctx.textAlign = 'center';
+                ctx.fillText('⚠️ BOSS狂暴！ ⚠️', game.width / 2, game.height / 2 - 60);
+                break;
         }
     });
 }
@@ -1808,6 +2163,53 @@ function render() {
         ctx.fillStyle = COLORS.ui.hp;
         ctx.fillRect(enemy.x - enemy.size, enemy.y - enemy.size - 8, barWidth * hpPercent, 4);
     });
+    
+    // 绘制BOSS
+    if (game.bossState.active && game.bossState.boss && game.bossState.boss.alive) {
+        const boss = game.bossState.boss;
+        
+        // BOSS无敌特效
+        if (boss.isInvincible) {
+            ctx.strokeStyle = `rgba(255, 255, 255, ${0.5 + Math.sin(Date.now() / 100) * 0.3})`;
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.arc(boss.x, boss.y, boss.size + 10, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        
+        // BOSS狂暴特效
+        if (boss.isEnraged) {
+            ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(boss.x, boss.y, boss.size + 20, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+        
+        // BOSS本体
+        ctx.fillStyle = boss.color;
+        ctx.beginPath();
+        ctx.arc(boss.x, boss.y, boss.size, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // BOSS名称
+        ctx.fillStyle = COLORS.ui.gold;
+        ctx.font = '16px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText(boss.name, boss.x, boss.y - boss.size - 20);
+        
+        // BOSS血条
+        const hpPercent = boss.hp / boss.maxHp;
+        ctx.fillStyle = '#333';
+        ctx.fillRect(boss.x - 60, boss.y - boss.size - 10, 120, 10);
+        ctx.fillStyle = '#ff0000';
+        ctx.fillRect(boss.x - 60, boss.y - boss.size - 10, 120 * hpPercent, 10);
+        
+        // 弱点提示
+        ctx.fillStyle = '#aaa';
+        ctx.font = '12px Microsoft YaHei';
+        ctx.fillText('弱点: ' + boss.weakPoint, boss.x, boss.y + boss.size + 20);
+    }
     
     // 绘制玩家
     game.players.forEach(player => {
@@ -1912,6 +2314,49 @@ function render() {
 // 绘制游戏UI
 function drawGameUI() {
     const ctx = game.ctx;
+    
+    // BOSS战UI
+    if (game.waveState === 'boss' && game.bossState.active && game.bossState.boss) {
+        const boss = game.bossState.boss;
+        
+        // BOSS血条（屏幕顶部）
+        ctx.fillStyle = '#333';
+        ctx.fillRect(game.width / 2 - 200, 20, 400, 25);
+        ctx.fillStyle = '#ff0000';
+        ctx.fillRect(game.width / 2 - 200, 20, 400 * (boss.hp / boss.maxHp), 25);
+        
+        // BOSS名称
+        ctx.fillStyle = COLORS.ui.gold;
+        ctx.font = 'bold 18px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText(boss.name, game.width / 2, 18);
+        
+        // 伤害统计（右上角）
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#fff';
+        ctx.font = '14px Microsoft YaHei';
+        ctx.fillText('总伤害: ' + Math.floor(game.bossState.totalDamage), game.width - 20, 30);
+        
+        // 狂暴/无敌状态提示
+        if (boss.isEnraged) {
+            ctx.fillStyle = '#ff4444';
+            ctx.font = 'bold 16px Microsoft YaHei';
+            ctx.textAlign = 'center';
+            ctx.fillText('⚠️ 狂暴状态 ⚠️', game.width / 2, 60);
+        }
+        if (boss.isInvincible) {
+            ctx.fillStyle = '#ffff00';
+            ctx.font = 'bold 16px Microsoft YaHei';
+            ctx.textAlign = 'center';
+            ctx.fillText('🛡️ 无敌中 🛡️', game.width / 2, 85);
+        }
+        
+        // BOSS提示
+        ctx.fillStyle = '#ff4444';
+        ctx.font = 'bold 24px Microsoft YaHei';
+        ctx.textAlign = 'center';
+        ctx.fillText('BOSS战！', game.width / 2, 120);
+    }
     
     // 波次
     ctx.fillStyle = '#fff';

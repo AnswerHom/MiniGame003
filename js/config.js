@@ -351,3 +351,107 @@ const achievementState = {
         waveKills: 0
     }
 };
+
+// BOSS数据
+const BOSS_DATA = {
+    毒娘子: {
+        name: '毒娘子',
+        hp: 5000,
+        attack: 80,
+        moveSpeed: 30,
+        attackRange: 200,
+        attackInterval: 1.5,
+        size: 40,
+        color: '#32CD32',
+        // 技能
+        skill1: {
+            name: '毒液喷射',
+            type: 'fan',
+            damage: 60,
+            range: 180,
+            fanAngle: 60,
+            cooldown: 5
+        },
+        // 特殊能力
+        summonInterval: 10,
+        summonCount: 3,
+        enragedThreshold: 0.3,
+        enragedMultiplier: 1.5,
+        // 弱点
+        weakPoint: '头部',
+        weakPointBonus: 0.3
+    },
+    赤鬼王: {
+        name: '赤鬼王',
+        hp: 8000,
+        attack: 120,
+        moveSpeed: 25,
+        attackRange: 150,
+        attackInterval: 2,
+        size: 50,
+        color: '#FF4500',
+        // 技能
+        skill1: {
+            name: '地面冲击',
+            type: 'circle',
+            damage: 80,
+            radius: 100,
+            cooldown: 4
+        },
+        skill2: {
+            name: '岩石投掷',
+            type: 'projectile',
+            damage: 100,
+            speed: 200,
+            cooldown: 3
+        },
+        // 特殊能力
+        earthquakeInterval: 15,
+        earthquakeDamage: 50,
+        immuneFromFront: true,
+        // 弱点
+        weakPoint: '背部',
+        weakPointBonus: 0.5
+    },
+    拜月教主: {
+        name: '拜月教主',
+        hp: 15000,
+        attack: 150,
+        moveSpeed: 20,
+        attackRange: 250,
+        attackInterval: 1,
+        size: 60,
+        color: '#8B008B',
+        // 技能
+        skill1: {
+            name: '魔法弹',
+            type: 'multiProjectile',
+            damage: 80,
+            count: 5,
+            speed: 150,
+            cooldown: 3
+        },
+        skill2: {
+            name: '暗黑漩涡',
+            type: 'suction',
+            damage: 30,
+            radius: 150,
+            duration: 5,
+            cooldown: 8
+        },
+        skill3: {
+            name: '召唤雷电',
+            type: 'lightning',
+            damage: 120,
+            radius: 50,
+            cooldown: 4
+        },
+        // 特殊能力
+        invincibleInterval: 20,
+        invincibleDuration: 3,
+        summonInterval: 12,
+        // 弱点
+        weakPoint: '胸口水晶',
+        weakPointBonus: 0.3
+    }
+};
