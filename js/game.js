@@ -93,6 +93,9 @@ function handleClick(e) {
     } else if (game.state === 'lobby') {
         // 大厅交互
         selectCharacter(x, y);
+    } else if (game.state === 'gacha') {
+        // 点击返回大厅
+        game.state = 'lobby';
     } else if (game.state === 'playing') {
         // 移动玩家
         movePlayer(x, y);
@@ -295,7 +298,7 @@ function drawLobby() {
     ctx.fillStyle = COLORS.ui.gold;
     ctx.font = 'bold 48px Microsoft YaHei';
     ctx.textAlign = 'center';
-    ctx.fillText('仙剑肉鸽', game.width / 2, 80);
+    ctx.fillText('游戏大厅', game.width / 2, 80);
     
     // 顶部资源显示
     ctx.fillStyle = '#87ceeb';
@@ -311,16 +314,17 @@ function drawLobby() {
     // 队伍显示
     ctx.fillStyle = '#fff';
     ctx.font = '18px Microsoft YaHei';
-    ctx.fillText('当前队伍 (' + game.players.length + '/5)', game.width / 2, 130);
+    ctx.fillText('当前队伍 (' + game.team.length + '/5)', game.width / 2, 140);
     
-    // 绘制已拥有角色
+    // 绘制已拥有角色（可点击选择）
     const charList = ['李逍遥', '赵灵儿', '阿奴'];
     const teamStartX = game.width / 2 - 120;
     
     charList.forEach((char, i) => {
         const x = teamStartX + i * 120;
-        const y = 170;
+        const y = 200;
         const owned = game.gachaState.ownedCharacters.includes(char);
+        const selected = game.team.includes(char);
         
         // 角色框
         ctx.fillStyle = owned ? getCharacterColor(char) : '#333';
@@ -330,6 +334,17 @@ function drawLobby() {
             ctx.fillStyle = '#fff';
             ctx.font = '14px Microsoft YaHei';
             ctx.fillText(char, x, y + 65);
+            
+            // 选中标记
+            if (selected) {
+                ctx.fillStyle = '#44ff44';
+                ctx.beginPath();
+                ctx.arc(x + 35, y - 20, 10, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.font = '12px Microsoft YaHei';
+                ctx.fillText('✓', x + 35, y - 16);
+            }
         } else {
             ctx.fillStyle = '#666';
             ctx.font = '12px Microsoft YaHei';
@@ -337,44 +352,20 @@ function drawLobby() {
         }
     });
     
-    // 抽卡区域标题
+    // 抽卡按钮
+    ctx.fillStyle = game.diamond >= 180 ? '#4a5568' : '#333';
+    ctx.fillRect(game.width / 2 - 80, game.height - 160, 160, 50);
     ctx.fillStyle = '#fff';
     ctx.font = '20px Microsoft YaHei';
-    ctx.fillText('抽卡区域', game.width / 2, 300);
+    ctx.fillText('抽卡', game.width / 2, game.height - 125);
     
-    // 绘制抽卡按钮
-    // 单抽按钮
-    ctx.fillStyle = game.diamond >= 20 ? '#4a5568' : '#333';
-    ctx.fillRect(game.width / 2 - 200, game.height - 160, 160, 50);
-    ctx.fillStyle = '#fff';
-    ctx.font = '18px Microsoft YaHei';
-    ctx.fillText('单抽 20💎', game.width / 2 - 120, game.height - 125);
-    
-    // 十连抽按钮
-    ctx.fillStyle = game.diamond >= 180 ? '#4a5568' : '#333';
-    ctx.fillRect(game.width / 2 + 40, game.height - 160, 160, 50);
-    ctx.fillStyle = '#fff';
-    ctx.fillText('十连 180💎', game.width / 2 + 120, game.height - 125);
-    
-    // 金币兑换钻石按钮
-    ctx.fillStyle = game.gold >= 100 ? '#4a5568' : '#333';
-    ctx.fillRect(game.width / 2 - 80, game.height - 100, 160, 35);
-    ctx.fillStyle = '#fff';
-    ctx.font = '14px Microsoft YaHei';
-    ctx.fillText('100💰 → 10💎', game.width / 2, game.height - 75);
-    
-    // 开始游戏按钮
-    if (game.players.length > 0) {
+    // 开始战斗按钮
+    if (game.team.length > 0) {
         ctx.fillStyle = COLORS.ui.gold;
-        ctx.fillRect(game.width / 2 - 80, game.height - 50, 160, 35);
+        ctx.fillRect(game.width / 2 - 80, game.height - 80, 160, 50);
         ctx.fillStyle = '#000';
-        ctx.font = '16px Microsoft YaHei';
-        ctx.fillText('开始游戏', game.width / 2, game.height - 27);
-    }
-    
-    // 抽卡结果展示
-    if (game.gachaState.drawnCards.length > 0) {
-        drawGachaResults();
+        ctx.font = '24px Microsoft YaHei';
+        ctx.fillText('开始战斗', game.width / 2, game.height - 47);
     }
 }
 
@@ -449,59 +440,73 @@ function drawGachaResults() {
     }
 }
 
-// 选择角色/抽卡
+// 大厅交互
 function selectCharacter(x, y) {
-    const ctx = game.ctx;
+    // 检查角色点击（选择队伍）
+    const charList = ['李逍遥', '赵灵儿', '阿奴'];
+    const teamStartX = game.width / 2 - 120;
+    const charY = 200;
     
-    // 检查单抽按钮
-    if (x >= game.width / 2 - 200 && x <= game.width / 2 - 40 &&
-        y >= game.height - 160 && y <= game.height - 110) {
-        if (game.diamond >= 20) {
-            drawGacha(1);
+    charList.forEach((char, i) => {
+        const cx = teamStartX + i * 120;
+        if (x >= cx - 40 && x <= cx + 40 && y >= charY - 30 && y <= charY + 50) {
+            // 只有已拥有的角色才能选择
+            if (game.gachaState.ownedCharacters.includes(char)) {
+                const idx = game.team.indexOf(char);
+                if (idx > -1) {
+                    game.team.splice(idx, 1);
+                } else if (game.team.length < 5) {
+                    game.team.push(char);
+                }
+            }
         }
-        return;
-    }
+    });
     
-    // 检查十连抽按钮
-    if (x >= game.width / 2 + 40 && x <= game.width / 2 + 200 &&
+    // 检查抽卡按钮
+    if (x >= game.width / 2 - 80 && x <= game.width / 2 + 80 &&
         y >= game.height - 160 && y <= game.height - 110) {
         if (game.diamond >= 180) {
+            game.state = 'gacha';
             drawGacha(10);
         }
         return;
     }
     
-    // 检查金币兑换按钮
-    if (x >= game.width / 2 - 80 && x <= game.width / 2 + 80 &&
-        y >= game.height - 100 && y <= game.height - 65) {
-        if (game.gold >= 100) {
-            game.gold -= 100;
-            game.diamond += 10;
-        }
-        return;
-    }
-    
-    // 检查开始游戏按钮
-    if (game.players.length > 0 &&
+    // 检查开始战斗按钮
+    if (game.team.length > 0 &&
         x >= game.width / 2 - 80 && x <= game.width / 2 + 80 &&
-        y >= game.height - 50 && y <= game.height - 15) {
-        game.state = 'playing';
-        game.wave = 1;
-        game.time = 0;
-        
-        // 初始化波次系统
-        game.waveState = 'countdown';
-        game.waveTimer = 15;
-        game.waveCountdown = 3;
-        game.waveEnemiesRemaining = 0;
-        game.waveEnemiesSpawned = 0;
-        game.waveSpawnTimer = 0;
-        game.enemiesToSpawn = 0;
-        
-        // 开始游戏循环
-        game.lastTime = performance.now();
-        requestAnimationFrame(gameLoop);
+        y >= game.height - 80 && y <= game.height - 30) {
+        startGame();
     }
+}
+
+// 开始战斗
+function startGame() {
+    // 根据队伍创建玩家
+    game.players = [];
+    game.team.forEach(charName => {
+        game.players.push(createPlayer(charName));
+    });
+    
+    game.state = 'playing';
+    game.wave = 1;
+    game.time = 0;
+    game.enemies = [];
+    game.projectiles = [];
+    game.effects = [];
+    game.gold = 0;
+    
+    // 初始化波次系统
+    game.waveState = 'countdown';
+    game.waveTimer = 15;
+    game.waveCountdown = 3;
+    game.waveEnemiesRemaining = 0;
+    game.waveEnemiesSpawned = 0;
+    game.waveSpawnTimer = 0;
+    game.enemiesToSpawn = 0;
+    
+    // 开始游戏循环
+    game.lastTime = performance.now();
 }
 
 // 抽卡函数
@@ -631,6 +636,8 @@ function gameLoop(timestamp) {
         drawMenu();
     } else if (game.state === 'lobby') {
         drawLobby();
+    } else if (game.state === 'gacha') {
+        drawGachaResults();
     } else if (game.state === 'playing') {
         const deltaTime = (timestamp - game.lastTime) / 1000;
         game.lastTime = timestamp;
