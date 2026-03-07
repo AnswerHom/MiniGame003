@@ -1605,7 +1605,7 @@ function render() {
             ctx.fill();
         }
         
-        // 根据投射物类型设置颜色
+        // 根据投射物类型绘制不同外观
         if (p.type === 'ice') {
             // 冰锥 - 蓝色
             ctx.fillStyle = p.isCrit ? '#9400D3' : '#00BFFF';
@@ -1617,6 +1617,37 @@ function render() {
             ctx.beginPath();
             ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
             ctx.fill();
+        } else if (p.isSword) {
+            // 飞剑 - 李逍遥技能
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(Math.atan2(p.vy, p.vx) + Math.PI / 2);
+            
+            // 剑光拖尾
+            ctx.fillStyle = p.isGold ? 'rgba(255, 215, 0, 0.3)' : 'rgba(200, 200, 255, 0.3)';
+            ctx.beginPath();
+            ctx.moveTo(0, -p.length / 2 - 10);
+            ctx.lineTo(3, -p.length / 2);
+            ctx.lineTo(0, -p.length / 2 + 5);
+            ctx.lineTo(-3, -p.length / 2);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 剑身
+            ctx.fillStyle = p.isGold ? '#FFD700' : '#C0C0FF';
+            ctx.beginPath();
+            ctx.moveTo(0, -p.length / 2);
+            ctx.lineTo(p.width / 2, 0);
+            ctx.lineTo(0, p.length / 2);
+            ctx.lineTo(-p.width / 2, 0);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 剑柄
+            ctx.fillStyle = p.isGold ? '#B8860B' : '#4169E1';
+            ctx.fillRect(-p.width / 4, p.length / 4, p.width / 2, p.length / 4);
+            
+            ctx.restore();
         } else {
             // 普通投射物
             ctx.fillStyle = p.isCrit ? COLORS.ui.gold : '#fff';
@@ -1739,12 +1770,35 @@ function drawSwordOrbit(player) {
         const x = player.x + Math.cos(angle) * radius;
         const y = player.y + Math.sin(angle) * radius;
         
-        // 绘制剑
-        ctx.fillStyle = '#87ceeb';
+        // 金光效果
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(angle + Math.PI / 2);
-        ctx.fillRect(-3, -10, 6, 20);
+        
+        // 剑光拖尾
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+        ctx.beginPath();
+        ctx.moveTo(0, -15);
+        ctx.lineTo(4, -10);
+        ctx.lineTo(0, 0);
+        ctx.lineTo(-4, -10);
+        ctx.closePath();
+        ctx.fill();
+        
+        // 剑身（金光）
+        ctx.fillStyle = '#FFD700';
+        ctx.beginPath();
+        ctx.moveTo(0, -15);
+        ctx.lineTo(4, 0);
+        ctx.lineTo(0, 15);
+        ctx.lineTo(-4, 0);
+        ctx.closePath();
+        ctx.fill();
+        
+        // 剑柄
+        ctx.fillStyle = '#B8860B';
+        ctx.fillRect(-2, 15, 4, 5);
+        
         ctx.restore();
     }
 }
