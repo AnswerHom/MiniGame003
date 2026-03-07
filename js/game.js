@@ -57,8 +57,9 @@ function initGame() {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
     
-    // 初始界面
-    drawMenu();
+    // 启动游戏循环
+    game.lastTime = performance.now();
+    requestAnimationFrame(gameLoop);
     
     // 点击开始游戏
     game.canvas.addEventListener('click', handleClick);
