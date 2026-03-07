@@ -133,6 +133,12 @@ function handleClick(e) {
     } else if (game.state === 'map') {
         // 地图交互
         handleMapClick(x, y);
+    } else if (game.state === 'gameover') {
+        // 检查返回大厅按钮
+        if (x >= game.width / 2 - 80 && x <= game.width / 2 + 80 &&
+            y >= game.height / 2 + 100 && y <= game.height / 2 + 150) {
+            game.state = 'lobby';
+        }
     } else if (game.state === 'playing') {
         // 移动玩家
         movePlayer(x, y);
@@ -860,6 +866,9 @@ function gameLoop(timestamp) {
         drawGachaResults();
     } else if (game.state === 'map') {
         drawMap();
+    } else if (game.state === 'gameover') {
+        render();
+        drawGameOver();
     } else if (game.state === 'playing') {
         const deltaTime = (timestamp - game.lastTime) / 1000;
         game.lastTime = timestamp;
@@ -936,6 +945,12 @@ function update(dt) {
             }
         }
     });
+    
+    // 检查游戏结束（全部玩家阵亡）
+    const alivePlayers = game.players.filter(p => p.alive);
+    if (alivePlayers.length === 0 && game.state === 'playing') {
+        game.state = 'gameover';
+    }
     
     // 更新敌人
     game.enemies.forEach(enemy => {
@@ -1278,6 +1293,97 @@ function enemyAttack(enemy, target) {
 }
 
 // 渲染特效
+// 绘制地面纹理
+function drawGroundTexture() {
+    const ctx = game.ctx;
+    
+    // 简化的纹理效果
+    for (let i = 0; i < 50; i++) {
+        const x = (i * 73) % game.width;
+        const y = (i * 47) % game.height;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+        ctx.beginPath();
+        ctx.arc(x, y, 20 + (i % 10), 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+// 绘制边界
+function drawBoundaries() {
+    const ctx = game.ctx;
+    const edgeWidth = 60;
+    
+    // 边界渐变效果（仙雾）
+    const gradient = ctx.createLinearGradient(0, 0, edgeWidth, 0);
+    gradient.addColorStop(0, 'rgba(200, 200, 200, 0.8)');
+    gradient.addColorStop(1, 'rgba(200, 200, 200, 0)');
+    
+    // 左侧边界
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, edgeWidth, game.height);
+    
+    // 右侧边界
+    const gradient2 = ctx.createLinearGradient(game.width - edgeWidth, 0, game.width, 0);
+    gradient2.addColorStop(0, 'rgba(200, 200, 200, 0)');
+    gradient2.addColorStop(1, 'rgba(200, 200, 200, 0.8)');
+    ctx.fillStyle = gradient2;
+    ctx.fillRect(game.width - edgeWidth, 0, edgeWidth, game.height);
+    
+    // 顶部边界
+    const gradient3 = ctx.createLinearGradient(0, 0, 0, edgeWidth);
+    gradient3.addColorStop(0, 'rgba(200, 200, 200, 0.8)');
+    gradient3.addColorStop(1, 'rgba(200, 200, 200, 0)');
+    ctx.fillStyle = gradient3;
+    ctx.fillRect(0, 0, game.width, edgeWidth);
+    
+    // 底部边界
+    const gradient4 = ctx.createLinearGradient(0, game.height - edgeWidth, 0, game.height);
+    gradient4.addColorStop(0, 'rgba(200, 200, 200, 0)');
+    gradient4.addColorStop(1, 'rgba(200, 200, 200, 0.8)');
+    ctx.fillStyle = gradient4;
+    ctx.fillRect(0, game.height - edgeWidth, game.width, edgeWidth);
+}
+
+// 绘制战斗区域边框
+function drawBattleArea() {
+    const ctx = game.ctx;
+    
+    // 战斗区域（圆形）
+    const centerX = game.width / 2;
+    const centerY = game.height / 2;
+    const radius = Math.min(game.width, game.height) * 0.4;
+    
+    // 外圈淡金色边框
+    ctx.strokeStyle = 'rgba(218, 165, 32, 0.3)';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // 内圈边框
+    ctx.strokeStyle = 'rgba(218, 165, 32, 0.5)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius - 10, 0, Math.PI * 2);
+    ctx.stroke();
+}
+
+// 绘制战斗装饰
+function drawBattleDecorations() {
+    const ctx = game.ctx;
+    const time = Date.now();
+    
+    // 飘落花瓣
+    for (let i = 0; i < 15; i++) {
+        const x = (time / 30 + i * 60) % game.width;
+        const y = (time / 20 + i * 40) % game.height;
+        ctx.fillStyle = 'rgba(255, 182, 193, 0.4)';
+        ctx.beginPath();
+        ctx.arc(x, y, 2, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
 function renderEffects() {
     const ctx = game.ctx;
     
@@ -1382,9 +1488,24 @@ function renderEffects() {
 function render() {
     const ctx = game.ctx;
     
-    // 背景
-    ctx.fillStyle = COLORS.background;
+    // 根据区域绘制背景
+    const region = game.regions[game.currentRegion];
+    
+    // 基础背景色
+    ctx.fillStyle = region.background;
     ctx.fillRect(0, 0, game.width, game.height);
+    
+    // 绘制地面纹理（简化版）
+    drawGroundTexture();
+    
+    // 绘制边界
+    drawBoundaries();
+    
+    // 绘制战斗区域边框
+    drawBattleArea();
+    
+    // 绘制装饰
+    drawBattleDecorations();
     
     // 绘制敌人
     game.enemies.forEach(enemy => {
@@ -1551,6 +1672,34 @@ function drawGameUI() {
     
     // 绘制小地图
     drawMiniMap();
+}
+
+// 绘制游戏结束界面
+function drawGameOver() {
+    const ctx = game.ctx;
+    
+    // 半透明遮罩
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, game.width, game.height);
+    
+    // 标题
+    ctx.fillStyle = '#ff4444';
+    ctx.font = 'bold 48px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText('游戏结束', game.width / 2, game.height / 2 - 50);
+    
+    // 统计
+    ctx.fillStyle = '#fff';
+    ctx.font = '24px Microsoft YaHei';
+    ctx.fillText('到达波次: 第 ' + game.wave + ' 波', game.width / 2, game.height / 2 + 10);
+    ctx.fillText('获得金币: ' + game.gold, game.width / 2, game.height / 2 + 50);
+    
+    // 返回大厅按钮
+    ctx.fillStyle = '#4a5568';
+    ctx.fillRect(game.width / 2 - 80, game.height / 2 + 100, 160, 50);
+    ctx.fillStyle = '#fff';
+    ctx.font = '20px Microsoft YaHei';
+    ctx.fillText('返回大厅', game.width / 2, game.height / 2 + 133);
 }
 
 // 绘制虚拟摇杆
