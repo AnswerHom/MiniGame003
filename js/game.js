@@ -97,6 +97,18 @@ const game = {
         lastSkillTime: 0,
         summonTimer: 0,
         firstKillReward: {} // 记录首杀奖励
+    },
+    // 装备系统
+    equipmentState: {
+        isOpen: false,
+        inventory: [], // 拥有的装备
+        equipped: {
+            武器: null,
+            防具: null,
+            饰品: null
+        },
+        selectedEquipment: null,
+        confirmAction: null
     }
 };
 
@@ -147,6 +159,12 @@ function handleClick(e) {
         // 商店UI点击处理
         if (game.shopState.isOpen) {
             handleShopClick(x, y);
+            return;
+        }
+        
+        // 装备UI点击处理
+        if (game.equipmentState.isOpen) {
+            handleEquipmentClick(x, y);
             return;
         }
         
@@ -467,6 +485,12 @@ function drawMenu() {
         ctx.fillText(unclaimedCount > 9 ? '9+' : unclaimedCount, game.width - 115, game.height - 51);
     }
     
+    // 装备按钮
+    ctx.fillStyle = '#4a5568';
+    ctx.fillRect(game.width - 270, game.height - 50, 80, 35);
+    ctx.fillStyle = '#fff';
+    ctx.fillText('装备', game.width - 230, game.height - 27);
+    
     // 抽卡结果展示
     if (game.gachaState.drawnCards.length > 0) {
         drawGachaResults();
@@ -480,6 +504,11 @@ function drawMenu() {
     // 绘制成就UI
     if (game.achievementState.isOpen) {
         drawAchievementUI();
+    }
+    
+    // 绘制装备UI
+    if (game.equipmentState.isOpen) {
+        drawEquipmentUI();
     }
 }
 
@@ -790,6 +819,230 @@ function selectCharacter(x, y) {
     if (x >= game.width - 180 && x <= game.width - 110 &&
         y >= game.height - 50 && y <= game.height - 15) {
         openAchievements();
+    }
+    
+    // 检查装备按钮
+    if (x >= game.width - 270 && x <= game.width - 190 &&
+        y >= game.height - 50 && y <= game.height - 15) {
+        openEquipment();
+    }
+}
+
+// 打开装备界面
+function openEquipment() {
+    game.equipmentState.isOpen = true;
+    game.equipmentState.selectedEquipment = null;
+    game.equipmentState.confirmAction = null;
+}
+
+// 绘制装备UI
+function drawEquipmentUI() {
+    const ctx = game.ctx;
+    
+    // 半透明遮罩
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(0, 0, game.width, game.height);
+    
+    // 装备标题
+    ctx.fillStyle = COLORS.ui.gold;
+    ctx.font = 'bold 32px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText('装备', game.width / 2, 50);
+    
+    // 关闭按钮
+    ctx.fillStyle = '#ff4444';
+    ctx.fillRect(game.width - 60, 15, 40, 40);
+    ctx.fillStyle = '#fff';
+    ctx.font = '24px Microsoft YaHei';
+    ctx.fillText('×', game.width - 40, 45);
+    
+    // 当前穿戴装备显示
+    ctx.fillStyle = '#fff';
+    ctx.font = '18px Microsoft YaHei';
+    ctx.fillText('已穿戴', 100, 80);
+    
+    const slots = ['武器', '防具', '饰品'];
+    const slotX = [80, 200, 320];
+    slots.forEach((slot, i) => {
+        const eq = game.equipmentState.equipped[slot];
+        const x = slotX[i];
+        
+        ctx.fillStyle = eq ? EQUIPMENT_QUALITY_COLORS[eq.quality] : '#333';
+        ctx.fillRect(x, 90, 80, 100);
+        
+        if (eq) {
+            ctx.fillStyle = '#fff';
+            ctx.font = '24px Microsoft YaHei';
+            ctx.fillText(eq.icon, x + 40, 145);
+            ctx.font = '12px Microsoft YaHei';
+            ctx.fillText(eq.name, x + 40, 175);
+        } else {
+            ctx.fillStyle = '#666';
+            ctx.font = '12px Microsoft YaHei';
+            ctx.fillText('空', x + 40, 145);
+        }
+    });
+    
+    // 背包装备列表
+    ctx.fillStyle = '#fff';
+    ctx.font = '18px Microsoft YaHei';
+    ctx.fillText('背包 (' + game.equipmentState.inventory.length + ')', 100, 230);
+    
+    // 绘制背包装备
+    const itemWidth = 70;
+    const itemHeight = 90;
+    const cols = 6;
+    const startX = 50;
+    const startY = 250;
+    
+    game.equipmentState.inventory.forEach((eq, i) => {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const x = startX + col * (itemWidth + 10);
+        const y = startY + row * (itemHeight + 10);
+        
+        // 选中状态
+        if (game.equipmentState.selectedEquipment === eq) {
+            ctx.strokeStyle = '#ffd700';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x - 3, y - 3, itemWidth + 6, itemHeight + 6);
+        }
+        
+        ctx.fillStyle = EQUIPMENT_QUALITY_COLORS[eq.quality];
+        ctx.fillRect(x, y, itemWidth, itemHeight);
+        
+        ctx.fillStyle = '#fff';
+        ctx.font = '20px Microsoft YaHei';
+        ctx.fillText(eq.icon, x + itemWidth / 2, y + 40);
+        
+        ctx.font = '10px Microsoft YaHei';
+        ctx.fillText(eq.name, x + itemWidth / 2, y + 65);
+        
+        // 强化等级
+        if (eq.enhanceLevel > 0) {
+            ctx.fillStyle = '#ffd700';
+            ctx.fillText('+' + eq.enhanceLevel, x + itemWidth / 2, y + 82);
+        }
+        
+        // 存储位置
+        eq.uiX = x;
+        eq.uiY = y;
+        eq.uiW = itemWidth;
+        eq.uiH = itemHeight;
+    });
+    
+    // 选中装备详情
+    if (game.equipmentState.selectedEquipment) {
+        const eq = game.equipmentState.selectedEquipment;
+        const stats = getEquipmentStats(eq);
+        
+        const detailX = game.width - 300;
+        const detailY = 220;
+        
+        ctx.fillStyle = '#2d3748';
+        ctx.fillRect(detailX, detailY, 280, 300);
+        
+        ctx.fillStyle = EQUIPMENT_QUALITY_COLORS[eq.quality];
+        ctx.font = '20px Microsoft YaHei';
+        ctx.textAlign = 'left';
+        ctx.fillText(eq.icon + ' ' + eq.name, detailX + 20, detailY + 30);
+        
+        ctx.fillStyle = '#fff';
+        ctx.font = '14px Microsoft YaHei';
+        ctx.fillText('品质: ' + eq.quality, detailX + 20, detailY + 60);
+        ctx.fillText('强化: +' + eq.enhanceLevel, detailX + 150, detailY + 60);
+        ctx.fillText('精炼: +' + eq.refineLevel, detailX + 20, detailY + 85);
+        
+        ctx.fillText('攻击力: ' + Math.floor(stats.attack), detailX + 20, detailY + 120);
+        ctx.fillText('生命值: ' + Math.floor(stats.hp), detailX + 20, detailY + 150);
+        ctx.fillText('暴击率: ' + (stats.critRate * 100).toFixed(1) + '%', detailX + 20, detailY + 180);
+        
+        // 强化按钮
+        const enhanceCost = eq.enhanceLevel < 10 ? ENHANCE_CONFIG.costs[eq.enhanceLevel] : 0;
+        const canEnhance = game.gold >= enhanceCost && eq.enhanceLevel < 10;
+        
+        ctx.fillStyle = canEnhance ? '#44aa44' : '#555';
+        ctx.fillRect(detailX + 20, detailY + 210, 110, 35);
+        ctx.fillStyle = '#fff';
+        ctx.font = '14px Microsoft YaHei';
+        ctx.fillText('强化 ' + enhanceCost + '💰', detailX + 75, detailY + 233);
+        
+        // 精炼按钮
+        const canRefine = game.gold >= REFINERY_CONFIG.cost && eq.refineLevel < 5;
+        
+        ctx.fillStyle = canRefine ? '#4169E1' : '#555';
+        ctx.fillRect(detailX + 150, detailY + 210, 110, 35);
+        ctx.fillStyle = '#fff';
+        ctx.fillText('精炼 ' + REFINERY_CONFIG.cost + '💰', detailX + 205, detailY + 233);
+        
+        // 穿戴/卸下按钮
+        const slot = eq.type;
+        const isEquipped = game.equipmentState.equipped[slot] === eq;
+        
+        ctx.fillStyle = isEquipped ? '#ff6b6b' : '#4a90d9';
+        ctx.fillRect(detailX + 20, detailY + 260, 240, 35);
+        ctx.fillStyle = '#fff';
+        ctx.fillText(isEquipped ? '卸下' : '穿戴', detailX + 140, detailY + 283);
+        
+        ctx.textAlign = 'center';
+    }
+}
+
+// 处理装备点击
+function handleEquipmentClick(x, y) {
+    // 关闭按钮
+    if (x >= game.width - 60 && x <= game.width - 20 && y >= 15 && y <= 55) {
+        game.equipmentState.isOpen = false;
+        return;
+    }
+    
+    // 检查背包装备点击
+    game.equipmentState.inventory.forEach(eq => {
+        if (eq.uiX && eq.uiY) {
+            if (x >= eq.uiX && x <= eq.uiX + eq.uiW && y >= eq.uiY && y <= eq.uiY + eq.uiH) {
+                game.equipmentState.selectedEquipment = eq;
+            }
+        }
+    });
+    
+    // 如果选中了装备，检查详情页按钮
+    if (game.equipmentState.selectedEquipment) {
+        const eq = game.equipmentState.selectedEquipment;
+        const detailX = game.width - 300;
+        const detailY = 220;
+        
+        // 强化按钮
+        if (x >= detailX + 20 && x <= detailX + 130 && y >= detailY + 210 && y <= detailY + 245) {
+            const enhanceCost = eq.enhanceLevel < 10 ? ENHANCE_CONFIG.costs[eq.enhanceLevel] : 0;
+            if (game.gold >= enhanceCost && eq.enhanceLevel < 10) {
+                const success = enhanceEquipment(eq);
+                if (success) {
+                    game.effects.push({ type: 'enhanceSuccess', life: 1 });
+                } else {
+                    game.effects.push({ type: 'enhanceFail', life: 1 });
+                }
+            }
+            return;
+        }
+        
+        // 精炼按钮
+        if (x >= detailX + 150 && x <= detailX + 260 && y >= detailY + 210 && y <= detailY + 245) {
+            if (game.gold >= REFINERY_CONFIG.cost && eq.refineLevel < 5) {
+                refineEquipment(eq);
+            }
+            return;
+        }
+        
+        // 穿戴/卸下按钮
+        if (x >= detailX + 20 && x <= detailX + 260 && y >= detailY + 260 && y <= detailY + 295) {
+            const slot = eq.type;
+            if (game.equipmentState.equipped[slot] === eq) {
+                unequipItem(slot);
+            } else {
+                equipItem(eq, slot);
+            }
+            return;
+        }
     }
 }
 
@@ -1617,6 +1870,12 @@ function defeatBoss() {
         addCardToInventory(card);
     }
     
+    // 装备掉落（30%概率）
+    if (Math.random() < 0.3) {
+        const equipment = generateEquipment();
+        addEquipment(equipment);
+    }
+    
     // BOSS击败特效
     game.effects.push({
         type: 'bossDefeat',
@@ -1642,6 +1901,113 @@ function defeatBoss() {
     game.waveState = 'countdown';
     game.waveCountdown = 3;
     game.waveTimer = 15;
+}
+
+// 生成随机装备
+function generateEquipment() {
+    const types = ['武器', '防具', '饰品'];
+    const type = types[Math.floor(Math.random() * types.length)];
+    
+    const items = Object.keys(EQUIPMENT_DATA[type]);
+    const itemName = items[Math.floor(Math.random() * items.length)];
+    const itemData = EQUIPMENT_DATA[type][itemName];
+    
+    // 随机品质
+    const qualities = ['普通', '普通', '普通', '优秀', '优秀', '精良', '精良', '史诗', '传说'];
+    const quality = qualities[Math.floor(Math.random() * qualities.length)];
+    
+    // 创建装备
+    return {
+        id: 'eq_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+        type: type,
+        name: itemName,
+        quality: quality,
+        icon: itemData.icon,
+        baseAttack: itemData.baseAttack || 0,
+        baseHp: itemData.baseHp || 0,
+        baseCritRate: itemData.baseCritRate || 0,
+        enhanceLevel: 0,
+        refineLevel: 0
+    };
+}
+
+// 添加装备到背包
+function addEquipment(equipment) {
+    game.equipmentState.inventory.push(equipment);
+}
+
+// 获取装备属性
+function getEquipmentStats(equipment) {
+    if (!equipment) return { attack: 0, hp: 0, critRate: 0 };
+    
+    const qualityBonus = EQUIPMENT_QUALITY_BONUS[equipment.quality];
+    const enhanceBonus = 1 + equipment.enhanceLevel * ENHANCE_CONFIG.bonusPerLevel;
+    const refineBonus = 1 + equipment.refineLevel * REFINERY_CONFIG.bonusPerLevel;
+    const totalBonus = qualityBonus * enhanceBonus * refineBonus;
+    
+    let attack = equipment.baseAttack * totalBonus;
+    let hp = equipment.baseHp * totalBonus;
+    let critRate = equipment.baseCritRate * totalBonus;
+    
+    return { attack, hp, critRate };
+}
+
+// 装备强化
+function enhanceEquipment(equipment) {
+    if (!equipment || equipment.enhanceLevel >= 10) return false;
+    
+    const cost = ENHANCE_CONFIG.costs[equipment.enhanceLevel];
+    if (game.gold < cost) return false;
+    
+    game.gold -= cost;
+    
+    // 成功率
+    const successRate = ENHANCE_CONFIG.successRates[equipment.enhanceLevel];
+    if (Math.random() < successRate) {
+        equipment.enhanceLevel++;
+        return true;
+    } else {
+        // 失败惩罚：降级
+        if (equipment.enhanceLevel > 0) {
+            equipment.enhanceLevel--;
+        }
+        return false;
+    }
+}
+
+// 装备精炼
+function refineEquipment(equipment) {
+    if (!equipment || equipment.refineLevel >= 5) return false;
+    if (game.gold < REFINERY_CONFIG.cost) return false;
+    
+    game.gold -= REFINERY_CONFIG.cost;
+    equipment.refineLevel++;
+    return true;
+}
+
+// 穿戴装备
+function equipItem(equipment, slot) {
+    // 卸下当前装备
+    const current = game.equipmentState.equipped[slot];
+    if (current) {
+        game.equipmentState.inventory.push(current);
+    }
+    
+    // 装备新装备
+    const idx = game.equipmentState.inventory.indexOf(equipment);
+    if (idx > -1) {
+        game.equipmentState.inventory.splice(idx, 1);
+    }
+    game.equipmentState.equipped[slot] = equipment;
+}
+
+// 卸下装备
+function unequipItem(slot) {
+    const equipment = game.equipmentState.equipped[slot];
+    if (equipment) {
+        game.equipmentState.inventory.push(equipment);
+        game.equipmentState.equipped[slot] = null;
+    }
 }
 
 // 生成波次敌人

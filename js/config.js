@@ -455,3 +455,66 @@ const BOSS_DATA = {
         weakPointBonus: 0.3
     }
 };
+
+// 装备数据
+const EQUIPMENT_DATA = {
+    // 武器
+    武器: {
+        剑: { baseAttack: 20, name: '剑', icon: '⚔️' },
+        仙剑: { baseAttack: 35, name: '仙剑', icon: '🗡️' },
+        魔剑: { baseAttack: 45, name: '魔剑', icon: '🔪' },
+        圣剑: { baseAttack: 50, name: '圣剑', icon: '✨' },
+        法杖: { baseAttack: 25, name: '法杖', icon: '🪄' },
+        魔杖: { baseAttack: 40, name: '魔杖', icon: '🧙' },
+        贤杖: { baseAttack: 50, name: '贤杖', icon: '📿' }
+    },
+    // 防具
+    防具: {
+        布衣: { baseHp: 100, name: '布衣', icon: '👕' },
+        皮甲: { baseHp: 150, name: '皮甲', icon: '🧥' },
+        铁甲: { baseHp: 200, name: '铁甲', icon: '🛡️' },
+        法袍: { baseHp: 180, name: '法袍', icon: '🧙' },
+        圣袍: { baseHp: 250, name: '圣袍', icon: '👘' },
+        天衣: { baseHp: 300, name: '天衣', icon: '👚' }
+    },
+    // 饰品
+    饰品: {
+        项链: { baseCritRate: 0.05, name: '项链', icon: '📿' },
+        戒指: { baseCritRate: 0.08, name: '戒指', icon: '💍' },
+        吊坠: { baseCritRate: 0.10, name: '吊坠', icon: '🧿' },
+        耳环: { baseCritRate: 0.12, name: '耳环', icon: '💎' },
+        手镯: { baseCritRate: 0.15, name: '手镯', icon: '⭕' }
+    }
+};
+
+// 装备品质颜色
+const EQUIPMENT_QUALITY_COLORS = {
+    '普通': '#888888',
+    '优秀': '#44AA44',
+    '精良': '#4169E1',
+    '史诗': '#9400D3',
+    '传说': '#FFA500'
+};
+
+// 装备品质加成
+const EQUIPMENT_QUALITY_BONUS = {
+    '普通': 1.0,
+    '优秀': 1.1,
+    '精良': 1.2,
+    '史诗': 1.3,
+    '传说': 1.5
+};
+
+// 强化配置
+const ENHANCE_CONFIG = {
+    costs: [100, 200, 400, 800, 1600, 3200, 6400, 12800, 25600, 51200],
+    successRates: [1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1],
+    bonusPerLevel: 0.05
+};
+
+// 精炼配置
+const REFINERY_CONFIG = {
+    cost: 500,
+    bonusPerLevel: 0.1,
+    maxLevel: 5
+};
