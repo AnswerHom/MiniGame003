@@ -782,6 +782,12 @@ function startGame() {
         game.players.push(createPlayer(charName));
     });
     
+    // 重置摄像机到世界中心
+    game.camera.x = game.worldWidth / 2;
+    game.camera.y = game.worldHeight / 2;
+    game.camera.targetX = game.camera.x;
+    game.camera.targetY = game.camera.y;
+    
     game.state = 'playing';
     game.wave = 1;
     game.time = 0;
@@ -903,10 +909,11 @@ function createPlayer(characterName) {
         attackRange: char.attackRange,
         critRate: char.critRate,
         critDamage: char.critDamage,
-        x: game.width / 2,
-        y: game.height / 2,
-        targetX: game.width / 2,
-        targetY: game.height / 2,
+        x: game.worldWidth / 2,
+        y: game.worldHeight / 2,
+        targetX: game.worldWidth / 2,
+        targetY: game.worldHeight / 2,
+        size: 20,
         skills: char.skills,
         skillCooldowns: {},
         lastAttack: 0,
@@ -918,8 +925,11 @@ function createPlayer(characterName) {
 // 移动玩家
 function movePlayer(x, y) {
     if (game.players.length > 0 && game.players[0].alive) {
-        game.players[0].targetX = x;
-        game.players[0].targetY = y;
+        // 转换屏幕坐标到世界坐标
+        const worldX = x + game.camera.x - game.width / 2;
+        const worldY = y + game.camera.y - game.height / 2;
+        game.players[0].targetX = worldX;
+        game.players[0].targetY = worldY;
     }
 }
 
