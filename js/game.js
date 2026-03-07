@@ -6,13 +6,14 @@ const game = {
     ctx: null,
     width: 0,
     height: 0,
-    state: 'menu', // menu, gacha, playing, gameover
+    state: 'menu', // menu, lobby, gacha, playing, gameover
     wave: 1,
     gold: 0,
     diamond: 200, // 钻石
     time: 0,
     lastTime: 0,
     players: [],
+    team: [], // 队伍配置
     enemies: [],
     projectiles: [],
     effects: [],
@@ -86,7 +87,10 @@ function handleClick(e) {
     const y = e.clientY - rect.top;
     
     if (game.state === 'menu') {
-        // 选择角色开始游戏
+        // 点击开始进入大厅
+        game.state = 'lobby';
+    } else if (game.state === 'lobby') {
+        // 大厅交互
         selectCharacter(x, y);
     } else if (game.state === 'playing') {
         // 移动玩家
@@ -262,7 +266,26 @@ function activateSwordOrbit(player, skill) {
 }
 
 // 绘制主菜单/抽卡界面
+// 绘制主菜单（点击开始）
 function drawMenu() {
+    const ctx = game.ctx;
+    ctx.fillStyle = COLORS.background;
+    ctx.fillRect(0, 0, game.width, game.height);
+    
+    // 标题
+    ctx.fillStyle = COLORS.ui.gold;
+    ctx.font = 'bold 64px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText('仙剑肉鸽', game.width / 2, game.height / 2 - 50);
+    
+    // 点击开始提示
+    ctx.fillStyle = '#fff';
+    ctx.font = '24px Microsoft YaHei';
+    ctx.fillText('点击屏幕开始游戏', game.width / 2, game.height / 2 + 30);
+}
+
+// 绘制大厅
+function drawLobby() {
     const ctx = game.ctx;
     ctx.fillStyle = COLORS.background;
     ctx.fillRect(0, 0, game.width, game.height);
@@ -602,14 +625,19 @@ function movePlayer(x, y) {
 
 // 游戏主循环
 function gameLoop(timestamp) {
-    if (game.state !== 'playing') return;
-    
-    const deltaTime = (timestamp - game.lastTime) / 1000;
-    game.lastTime = timestamp;
-    game.time += deltaTime;
-    
-    update(deltaTime);
-    render();
+    // 根据游戏状态渲染不同界面
+    if (game.state === 'menu') {
+        drawMenu();
+    } else if (game.state === 'lobby') {
+        drawLobby();
+    } else if (game.state === 'playing') {
+        const deltaTime = (timestamp - game.lastTime) / 1000;
+        game.lastTime = timestamp;
+        game.time += deltaTime;
+        
+        update(deltaTime);
+        render();
+    }
     
     requestAnimationFrame(gameLoop);
 }
