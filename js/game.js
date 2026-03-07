@@ -109,6 +109,18 @@ const game = {
         },
         selectedEquipment: null,
         confirmAction: null
+    },
+    // 天赋系统
+    talentState: {
+        isOpen: false,
+        unlocked: false, // 通关第5波后解锁
+        talentPoints: 0,
+        usedPoints: 0,
+        talents: {
+            attack: [],
+            defense: [],
+            support: []
+        }
     }
 };
 
@@ -165,6 +177,12 @@ function handleClick(e) {
         // 装备UI点击处理
         if (game.equipmentState.isOpen) {
             handleEquipmentClick(x, y);
+            return;
+        }
+        
+        // 天赋UI点击处理
+        if (game.talentState.isOpen) {
+            handleTalentClick(x, y);
             return;
         }
         
@@ -491,6 +509,14 @@ function drawMenu() {
     ctx.fillStyle = '#fff';
     ctx.fillText('装备', game.width - 230, game.height - 27);
     
+    // 天赋按钮
+    const talentUnlocked = game.talentState.unlocked;
+    ctx.fillStyle = talentUnlocked ? '#4a5568' : '#333';
+    ctx.fillRect(game.width - 360, game.height - 50, 80, 35);
+    ctx.fillStyle = talentUnlocked ? '#fff' : '#666';
+    ctx.font = '14px Microsoft YaHei';
+    ctx.fillText('天赋', game.width - 320, game.height - 27);
+    
     // 抽卡结果展示
     if (game.gachaState.drawnCards.length > 0) {
         drawGachaResults();
@@ -509,6 +535,11 @@ function drawMenu() {
     // 绘制装备UI
     if (game.equipmentState.isOpen) {
         drawEquipmentUI();
+    }
+    
+    // 绘制天赋UI
+    if (game.talentState.isOpen) {
+        drawTalentUI();
     }
 }
 
@@ -826,6 +857,224 @@ function selectCharacter(x, y) {
         y >= game.height - 50 && y <= game.height - 15) {
         openEquipment();
     }
+    
+    // 检查天赋按钮
+    if (x >= game.width - 360 && x <= game.width - 280 &&
+        y >= game.height - 50 && y <= game.height - 15) {
+        if (game.talentState.unlocked) {
+            openTalents();
+        }
+    }
+}
+
+// 打开天赋界面
+function openTalents() {
+    game.talentState.isOpen = true;
+}
+
+// 绘制天赋UI
+function drawTalentUI() {
+    const ctx = game.ctx;
+    
+    // 半透明遮罩
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(0, 0, game.width, game.height);
+    
+    // 天赋标题
+    ctx.fillStyle = COLORS.ui.gold;
+    ctx.font = 'bold 32px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText('天赋', game.width / 2, 50);
+    
+    // 关闭按钮
+    ctx.fillStyle = '#ff4444';
+    ctx.fillRect(game.width - 60, 15, 40, 40);
+    ctx.fillStyle = '#fff';
+    ctx.font = '24px Microsoft YaHei';
+    ctx.fillText('×', game.width - 40, 45);
+    
+    // 天赋点数显示
+    const availablePoints = game.talentState.talentPoints - game.talentState.usedPoints;
+    ctx.fillStyle = '#fff';
+    ctx.font = '20px Microsoft YaHei';
+    ctx.fillText('可用点数: ' + availablePoints, game.width / 2, 90);
+    ctx.fillText('已用点数: ' + game.talentState.usedPoints + '/30', game.width / 2, 120);
+    
+    // 三列天赋树
+    const trees = ['attack', 'defense', 'support'];
+    const treeNames = ['攻击系', '防御系', '辅助系'];
+    const treeColors = ['#ff4444', '#44aa44', '#4a90d9'];
+    const colWidth = game.width / 3;
+    
+    trees.forEach((tree, colIndex) => {
+        const x = colIndex * colWidth + colWidth / 2;
+        
+        // 天赋树标题
+        ctx.fillStyle = treeColors[colIndex];
+        ctx.font = 'bold 20px Microsoft YaHei';
+        ctx.fillText(treeNames[colIndex], x, 160);
+        
+        // 绘制天赋节点
+        const talents = Object.keys(TALENTS[tree]);
+        const startY = 190;
+        
+        talents.forEach((talentName, i) => {
+            const talent = TALENTS[tree][talentName];
+            const y = startY + i * 70;
+            const learned = game.talentState.talents[tree].includes(talentName);
+            const canLearn = canLearnTalent(tree, talentName);
+            
+            // 绘制连线
+            if (talent.requires) {
+                const requiresIdx = talents.indexOf(talent.requires);
+                const requiresY = startY + requiresIdx * 70;
+                const requiresLearned = game.talentState.talents[tree].includes(talent.requires);
+                
+                ctx.strokeStyle = requiresLearned ? treeColors[colIndex] : '#333';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(x, requiresY + 15);
+                ctx.lineTo(x, y - 15);
+                ctx.stroke();
+            }
+            
+            // 节点背景
+            ctx.fillStyle = learned ? treeColors[colIndex] : (canLearn ? '#666' : '#333');
+            ctx.beginPath();
+            ctx.arc(x, y, 20, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 节点图标
+            ctx.fillStyle = '#fff';
+            ctx.font = '16px Microsoft YaHei';
+            ctx.fillText(talent.icon, x, y + 5);
+            
+            // 节点名称
+            ctx.fillStyle = learned ? '#fff' : '#888';
+            ctx.font = '12px Microsoft YaHei';
+            ctx.fillText(talentName, x, y + 35);
+            
+            // 节点效果
+            ctx.fillStyle = '#aaa';
+            ctx.font = '10px Microsoft YaHei';
+            ctx.fillText(talent.desc, x, y + 48);
+            
+            // 存储节点位置
+            talent.uiX = x;
+            talent.uiY = y;
+            talent.uiR = 20;
+            talent.uiTree = tree;
+        });
+    });
+    
+    // 重置按钮
+    const resetCost = 50;
+    ctx.fillStyle = game.diamond >= resetCost ? '#ff6b6b' : '#555';
+    ctx.fillRect(game.width / 2 - 60, game.height - 80, 120, 40);
+    ctx.fillStyle = '#fff';
+    ctx.font = '16px Microsoft YaHei';
+    ctx.fillText('重置 ' + resetCost + '💎', game.width / 2, game.height - 52);
+}
+
+// 检查是否可以学习天赋
+function canLearnTalent(tree, talentName) {
+    const talent = TALENTS[tree][talentName];
+    const availablePoints = game.talentState.talentPoints - game.talentState.usedPoints;
+    
+    // 检查点数是否足够
+    if (availablePoints < talent.cost) return false;
+    
+    // 检查是否已学习
+    if (game.talentState.talents[tree].includes(talentName)) return false;
+    
+    // 检查前置天赋
+    if (talent.requires) {
+        if (!game.talentState.talents[tree].includes(talent.requires)) return false;
+    }
+    
+    return true;
+}
+
+// 学习天赋
+function learnTalent(tree, talentName) {
+    const talent = TALENTS[tree][talentName];
+    
+    if (!canLearnTalent(tree, talentName)) return false;
+    
+    game.talentState.talents[tree].push(talentName);
+    game.talentState.usedPoints += talent.cost;
+    return true;
+}
+
+// 重置天赋
+function resetTalents() {
+    const resetCost = 50;
+    if (game.diamond < resetCost) return false;
+    
+    game.diamond -= resetCost;
+    game.talentState.usedPoints = 0;
+    game.talentState.talents = {
+        attack: [],
+        defense: [],
+        support: []
+    };
+    return true;
+}
+
+// 获取天赋加成
+function getTalentBonus(effect) {
+    let bonus = 0;
+    
+    // 攻击系
+    game.talentState.talents.attack.forEach(talentName => {
+        const talent = TALENTS.attack[talentName];
+        if (talent.effect === effect) bonus += talent.value;
+    });
+    
+    // 防御系
+    game.talentState.talents.defense.forEach(talentName => {
+        const talent = TALENTS.defense[talentName];
+        if (talent.effect === effect) bonus += talent.value;
+    });
+    
+    // 辅助系
+    game.talentState.talents.support.forEach(talentName => {
+        const talent = TALENTS.support[talentName];
+        if (talent.effect === effect) bonus += talent.value;
+    });
+    
+    return bonus;
+}
+
+// 处理天赋点击
+function handleTalentClick(x, y) {
+    // 关闭按钮
+    if (x >= game.width - 60 && x <= game.width - 20 && y >= 15 && y <= 55) {
+        game.talentState.isOpen = false;
+        return;
+    }
+    
+    // 重置按钮
+    if (x >= game.width / 2 - 60 && x <= game.width / 2 + 60 &&
+        y >= game.height - 80 && y <= game.height - 40) {
+        resetTalents();
+        return;
+    }
+    
+    // 检查天赋节点点击
+    const trees = ['attack', 'defense', 'support'];
+    trees.forEach(tree => {
+        Object.keys(TALENTS[tree]).forEach(talentName => {
+            const talent = TALENTS[tree][talentName];
+            if (talent.uiX && talent.uiY) {
+                const dx = x - talent.uiX;
+                const dy = y - talent.uiY;
+                if (Math.sqrt(dx*dx + dy*dy) <= talent.uiR) {
+                    learnTalent(tree, talentName);
+                }
+            }
+        });
+    });
 }
 
 // 打开装备界面
@@ -2108,6 +2357,20 @@ function completeWave() {
         critRate: 0,
         regen: 0
     };
+    
+    // 解锁天赋系统（通关第5波）
+    if (game.wave >= 5 && !game.talentState.unlocked) {
+        game.talentState.unlocked = true;
+        game.effects.push({
+            type: 'talentUnlocked',
+            life: 3
+        });
+    }
+    
+    // 给予天赋点数（每波1点，上限30点）
+    if (game.talentState.unlocked && game.talentState.talentPoints < 30) {
+        game.talentState.talentPoints++;
+    }
     
     // 60%概率触发随机事件
     if (Math.random() < 0.6) {

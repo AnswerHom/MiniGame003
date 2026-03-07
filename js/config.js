@@ -518,3 +518,34 @@ const REFINERY_CONFIG = {
     bonusPerLevel: 0.1,
     maxLevel: 5
 };
+
+// 天赋数据
+const TALENTS = {
+    // 攻击系
+    attack: {
+        锋利: { name: '锋利', effect: 'attack', value: 0.05, cost: 1, requires: null, desc: '攻击力+5%', icon: '⚔️', color: '#ff4444' },
+        穿透: { name: '穿透', effect: 'penetrate', value: 0.1, cost: 2, requires: '锋利', desc: '攻击穿透+10%', icon: '🔱', color: '#ff4444' },
+        致命: { name: '致命', effect: 'critRate', value: 0.05, cost: 1, requires: null, desc: '暴击率+5%', icon: '💥', color: '#ff4444' },
+        毁灭: { name: '毁灭', effect: 'critDamage', value: 0.15, cost: 2, requires: '致命', desc: '暴击伤害+15%', icon: '💣', color: '#ff4444' },
+        连击: { name: '连击', effect: 'attackSpeed', value: 0.08, cost: 2, requires: '锋利', desc: '攻击速度+8%', icon: '⚡', color: '#ff4444' },
+        嗜血: { name: '嗜血', effect: 'lifesteal', value: 0.05, cost: 3, requires: '连击', desc: '击杀回复5%生命', icon: '🩸', color: '#ff4444' }
+    },
+    // 防御系
+    defense: {
+        坚韧: { name: '坚韧', effect: 'hp', value: 0.1, cost: 1, requires: null, desc: '生命值+10%', icon: '❤️', color: '#44aa44' },
+        铁壁: { name: '铁壁', effect: 'damageReduction', value: 0.05, cost: 2, requires: '坚韧', desc: '受到的伤害-5%', icon: '🛡️', color: '#44aa44' },
+        闪避: { name: '闪避', effect: 'dodge', value: 0.05, cost: 1, requires: null, desc: '闪避率+5%', icon: '💨', color: '#44aa44' },
+        轻盈: { name: '轻盈', effect: 'moveSpeed', value: 0.05, cost: 2, requires: '闪避', desc: '移动速度+5%', icon: '👟', color: '#44aa44' },
+        再生: { name: '再生', effect: 'regen', value: 0.01, cost: 2, requires: '坚韧', desc: '每5秒回复1%生命', icon: '💚', color: '#44aa44' },
+        不死: { name: '不死', effect: 'reviveOnce', value: 1, cost: 3, requires: '再生', desc: '死亡时满血复活1次', icon: '✝️', color: '#44aa44' }
+    },
+    // 辅助系
+    support: {
+        治疗: { name: '治疗', effect: 'healEffect', value: 0.1, cost: 1, requires: null, desc: '治疗效果+10%', icon: '💊', color: '#4a90d9' },
+        护盾: { name: '护盾', effect: 'shieldEffect', value: 0.15, cost: 2, requires: '治疗', desc: '护盾效果+15%', icon: '🔰', color: '#4a90d9' },
+        幸运: { name: '幸运', effect: 'dropRate', value: 0.1, cost: 1, requires: null, desc: '掉宝率+10%', icon: '🍀', color: '#4a90d9' },
+        商人: { name: '商人', effect: 'shopDiscount', value: 0.1, cost: 2, requires: '幸运', desc: '商店价格-10%', icon: '💰', color: '#4a90d9' },
+        经验: { name: '经验', effect: 'expGain', value: 0.15, cost: 2, requires: '幸运', desc: '经验获取+15%', icon: '📚', color: '#4a90d9' },
+        聚宝: { name: '聚宝', effect: 'goldGain', value: 0.15, cost: 3, requires: '商人', desc: '金币获取+15%', icon: '💎', color: '#4a90d9' }
+    }
+};
