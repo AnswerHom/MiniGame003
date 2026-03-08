@@ -783,9 +783,6 @@ function selectCharacter(x, y) {
     const teamStartX = game.width / 2 - 120;
     const charY = 200;
     
-    // 检查是否点击了角色头像（选择/取消角色）
-    const charList = ['李逍遥', '赵灵儿', '阿奴'];
-    
     charList.forEach((char, i) => {
         const charX = teamStartX + i * 120;
         // 检查是否点击了角色框
