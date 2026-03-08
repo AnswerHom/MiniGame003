@@ -52,7 +52,7 @@ const game = {
     },
     // 障碍物
     obstacles: [],
-    state: 'menu', // menu, lobby, gacha, playing, gameover, map
+    state: 'menu', // menu, lobby, gacha, playing, gameover, victory, map
     wave: 1,
     gold: 0,
     diamond: 200, // 钻石
@@ -120,6 +120,15 @@ function initGame() {
     // 生成障碍物
     generateObstacles();
     
+    // 初始化队伍系统（v2.3.1）
+    TeamManager.load();
+    game.team = TeamManager.getMembers();
+    if (game.team.length === 0) {
+        game.team = ['李逍遥'];
+        TeamManager.addMember('李逍遥');
+        TeamManager.save();
+    }
+    
     // 启动游戏循环
     game.lastTime = performance.now();
     requestAnimationFrame(gameLoop);
@@ -163,6 +172,12 @@ function handleClick(e) {
         // 地图交互
         handleMapClick(x, y);
     } else if (game.state === 'gameover') {
+        // 检查返回大厅按钮
+        if (x >= game.width / 2 - 80 && x <= game.width / 2 + 80 &&
+            y >= game.height / 2 + 100 && y <= game.height / 2 + 150) {
+            game.state = 'lobby';
+        }
+    } else if (game.state === 'victory') {
         // 检查返回大厅按钮
         if (x >= game.width / 2 - 80 && x <= game.width / 2 + 80 &&
             y >= game.height / 2 + 100 && y <= game.height / 2 + 150) {
@@ -743,9 +758,12 @@ function selectCharacter(x, y) {
                 const idx = game.team.indexOf(char);
                 if (idx > -1) {
                     game.team.splice(idx, 1);
+                    TeamManager.removeMember(char);
                 } else if (game.team.length < 5) {
                     game.team.push(char);
+                    TeamManager.addMember(char);
                 }
+                TeamManager.save();
             }
         }
     });
@@ -795,6 +813,9 @@ function startGame() {
     game.projectiles = [];
     game.effects = [];
     game.gold = 0;
+    
+    // v2.3.1 队伍系统 - 设置战斗状态
+    TeamManager.setInBattle(true);
     
     // 初始化波次系统
     game.waveState = 'countdown';
@@ -968,6 +989,9 @@ function gameLoop(timestamp) {
     } else if (game.state === 'gameover') {
         render();
         drawGameOver();
+    } else if (game.state === 'victory') {
+        render();
+        drawVictory();
     } else if (game.state === 'playing') {
         const deltaTime = (timestamp - game.lastTime) / 1000;
         game.lastTime = timestamp;
@@ -1077,9 +1101,19 @@ function update(dt) {
         }
     });
     
+    // v2.3.1 队伍系统 - 队伍跟随更新
+    if (game.players.length > 1 && game.state === 'playing') {
+        const leader = game.players.find(p => p.alive);
+        if (leader) {
+            TeamManager.updateTeamFollow(leader);
+        }
+    }
+    
     // 检查游戏结束（全部玩家阵亡）
     const alivePlayers = game.players.filter(p => p.alive);
     if (alivePlayers.length === 0 && game.state === 'playing') {
+        // v2.3.1 队伍系统 - 离开战斗状态
+        TeamManager.setInBattle(false);
         game.state = 'gameover';
     }
     
@@ -1230,17 +1264,26 @@ function updateWaveSystem(dt) {
     }
 }
 
-// 开始波次
+// 开始波次（v2.3.2 & v2.3.3 更新）
 function startWave() {
-    // 计算本波怪物数量和属性
-    const baseCount = 5;
-    const enemyCount = baseCount + game.wave - 1;
-    const attributeMultiplier = 1 + (game.wave - 1) * 0.1;
+    // v2.3.3: 12波/BOSS战，第12波为BOSS战
+    if (game.wave === 12) {
+        game.effects.push({
+            type: 'waveStart',
+            wave: game.wave,
+            life: 3,
+            isBoss: true
+        });
+    }
     
-    game.enemiesToSpawn = enemyCount;
-    game.waveEnemiesSpawned = 0;
+    // 使用EnemySpawner生成波次
+    EnemySpawner.spawnWave(game.wave);
+    
+    game.enemiesToSpawn = game.enemies.length;
+    game.waveEnemiesSpawned = game.enemies.length;
+    game.waveEnemiesRemaining = game.enemies.length;
     game.waveSpawnTimer = 0;
-    game.waveState = 'spawning';
+    game.waveState = 'playing';
     
     // 添加波次开始特效
     game.effects.push({
@@ -1328,8 +1371,16 @@ function spawnWaveEnemy() {
     game.waveEnemiesSpawned++;
 }
 
-// 完成波次
+// 完成波次（v2.3.3 更新：12波/BOSS战）
 function completeWave() {
+    // v2.3.3: 第12波为BOSS战，完成第12波意味着通关
+    if (game.wave >= 12) {
+        // 通关！
+        game.state = 'victory';
+        TeamManager.setInBattle(false);
+        return;
+    }
+    
     // 发放金币奖励
     game.gold += 100;
     
@@ -1608,10 +1659,11 @@ function renderEffects() {
                 ctx.restore();
                 break;
             case 'waveStart':
-                ctx.fillStyle = `rgba(255, 68, 68, ${effect.life})`;
+                ctx.fillStyle = effect.isBoss ? `rgba(255, 0, 0, ${effect.life})` : `rgba(255, 68, 68, ${effect.life})`;
                 ctx.font = 'bold 32px Microsoft YaHei';
                 ctx.textAlign = 'center';
-                ctx.fillText('第 ' + effect.wave + ' 波 开始！', game.width / 2, game.height / 2);
+                const startWaveText = effect.wave === 12 ? '⚠️ BOSS战 ⚠️' : ('第 ' + effect.wave + ' 波 开始！');
+                ctx.fillText(startWaveText, game.width / 2, game.height / 2);
                 break;
             case 'waveComplete':
                 ctx.fillStyle = `rgba(255, 215, 0, ${effect.life})`;
@@ -1870,11 +1922,12 @@ function render() {
 function drawGameUI() {
     const ctx = game.ctx;
     
-    // 波次
-    ctx.fillStyle = '#fff';
+    // 波次（v2.3.3 BOSS战显示）
+    ctx.fillStyle = game.wave === 12 ? '#ff4444' : '#fff';
     ctx.font = '16px Microsoft YaHei';
     ctx.textAlign = 'left';
-    ctx.fillText('第 ' + game.wave + ' 波', 20, 30);
+    const waveText = game.wave === 12 ? 'BOSS战' : ('第 ' + game.wave + ' 波');
+    ctx.fillText(waveText, 20, 30);
     
     // 敌人数量
     const enemyCount = game.enemies.filter(e => e.alive).length;
@@ -1933,6 +1986,37 @@ function drawGameOver() {
     ctx.fillStyle = '#fff';
     ctx.font = '20px Microsoft YaHei';
     ctx.fillText('返回大厅', game.width / 2, game.height / 2 + 133);
+}
+
+// 绘制胜利界面（v2.3.3 第12波BOSS战通关）
+function drawVictory() {
+    const ctx = game.ctx;
+    
+    // 半透明遮罩
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, game.width, game.height);
+    
+    // 标题
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 48px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText('🎉 通关成功！', game.width / 2, game.height / 2 - 80);
+    
+    // 副标题
+    ctx.fillStyle = '#fff';
+    ctx.font = '24px Microsoft YaHei';
+    ctx.fillText('恭喜击败BOSS，完成全部12波挑战！', game.width / 2, game.height / 2 - 30);
+    
+    // 统计
+    ctx.font = '20px Microsoft YaHei';
+    ctx.fillText('获得金币: ' + game.gold, game.width / 2, game.height / 2 + 30);
+    
+    // 返回大厅按钮
+    ctx.fillStyle = '#4a5568';
+    ctx.fillRect(game.width / 2 - 80, game.height / 2 + 80, 160, 50);
+    ctx.fillStyle = '#fff';
+    ctx.font = '20px Microsoft YaHei';
+    ctx.fillText('返回大厅', game.width / 2, game.height / 2 + 113);
 }
 
 // 绘制虚拟摇杆
