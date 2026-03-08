@@ -663,6 +663,8 @@ function drawLobby() {
         }
         
         if (owned) {
+            const selected = inTeam;
+            
             ctx.fillStyle = '#fff';
             ctx.font = '14px Microsoft YaHei';
             ctx.fillText(char, x, y + 65);
