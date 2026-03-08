@@ -1,5 +1,8 @@
 // ===== 仙剑肉鸽 - 游戏主逻辑 =====
 
+// 角色列表常量
+const CHARACTER_LIST = ['李逍遥', '赵灵儿', '阿奴'];
+
 // 地图区域数据
 const MAP_REGIONS = {
     仙剑岛: {
@@ -639,7 +642,7 @@ function drawLobby() {
     ctx.fillText('当前队伍 (' + game.team.length + '/5)', game.width / 2, 140);
     
     // 绘制已拥有角色（可点击选择）
-    const charList = ['李逍遥', '赵灵儿', '阿奴'];
+    const charList = CHARACTER_LIST;
     const teamStartX = game.width / 2 - 120;
     
     charList.forEach((char, i) => {
@@ -779,10 +782,11 @@ function drawGachaResults() {
 // 大厅交互
 function selectCharacter(x, y) {
     // 检查角色点击（选择队伍）
-    const charList = ['李逍遥', '赵灵儿', '阿奴'];
+    const charList = CHARACTER_LIST;
     const teamStartX = game.width / 2 - 120;
     const charY = 200;
     
+    // 检查是否点击了角色头像（选择/取消角色）
     charList.forEach((char, i) => {
         const charX = teamStartX + i * 120;
         // 检查是否点击了角色框
@@ -889,7 +893,7 @@ function drawGacha(count) {
     game.gachaState.drawnCards = [];
     game.gachaState.drawnCardsList = []; // 抽到的卡牌
     
-    const charList = ['李逍遥', '赵灵儿', '阿奴'];
+    const charList = CHARACTER_LIST;
     const newChars = [];
     
     for (let i = 0; i < count; i++) {
