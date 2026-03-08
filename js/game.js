@@ -2120,25 +2120,30 @@ function drawGameUI() {
     drawBattleRogueButton();
 }
 
-// v2.6.0 绘制战斗肉鸽按钮（v2.7.0 移至左下角）
+// v2.6.0 绘制战斗肉鸽按钮（v2.7.0 左下角）
 function drawBattleRogueButton() {
     const ctx = game.ctx;
     
-    // v2.7.0 按钮位置：右下角
-    const btnX = game.width - 100;
-    const btnY = game.height - 60;
+    // v2.7.0 按钮位置：左下角，摇杆旁边
+    const btnX = 20;
+    const btnY = game.height - 120;
     const btnW = 80;
-    const btnH = 35;
+    const btnH = 40;
     
-    // 按钮背景
-    ctx.fillStyle = '#4a5568';
+    // 按钮背景（红色显眼）
+    ctx.fillStyle = '#e53e3e';
     ctx.fillRect(btnX, btnY, btnW, btnH);
+    
+    // 边框
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(btnX, btnY, btnW, btnH);
     
     // 按钮文字
     ctx.fillStyle = '#fff';
-    ctx.font = '14px Microsoft YaHei';
+    ctx.font = 'bold 16px Microsoft YaHei';
     ctx.textAlign = 'center';
-    ctx.fillText('肉鸽', btnX + btnW / 2, btnY + 23);
+    ctx.fillText('抽卡', btnX + btnW / 2, btnY + 26);
     
     // 保存按钮区域供点击检测
     game.battleRogueBtn = { x: btnX, y: btnY, w: btnW, h: btnH };
