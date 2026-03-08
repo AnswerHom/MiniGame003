@@ -649,7 +649,7 @@ function drawLobby() {
         const x = teamStartX + i * 120;
         const y = 200;
         const owned = game.gachaState.ownedCharacters.includes(char);
-        const inTeam = game.players.some(p => p.name === char);
+        const inTeam = game.team.includes(char);
         
         // 角色框
         ctx.fillStyle = owned ? getCharacterColor(char) : '#333';
@@ -789,6 +789,7 @@ function selectCharacter(x, y) {
     const charY = 200;
     
     // 检查是否点击了角色头像（选择/取消角色）
+    let teamChanged = false;
     charList.forEach((char, i) => {
         const charX = teamStartX + i * 120;
         // 检查是否点击了角色框
@@ -796,19 +797,30 @@ function selectCharacter(x, y) {
             y >= charY - 30 && y <= charY + 50) {
             // 检查是否已拥有该角色
             if (game.gachaState.ownedCharacters.includes(char)) {
-                const inTeamIndex = game.players.findIndex(p => p.name === char);
-                if (inTeamIndex >= 0) {
+                if (game.team.includes(char)) {
                     // 已在队伍中，移除
-                    game.players.splice(inTeamIndex, 1);
+                    const idx = game.team.indexOf(char);
+                    if (idx > -1) {
+                        game.team.splice(idx, 1);
+                        TeamManager.removeMember(char);
+                        teamChanged = true;
+                    }
                 } else {
                     // 未在队伍中，添加（最多5人）
-                    if (game.players.length < 5) {
-                        game.players.push(createPlayer(char));
+                    if (game.team.length < 5) {
+                        game.team.push(char);
+                        TeamManager.addMember(char);
+                        teamChanged = true;
                     }
                 }
             }
         }
     });
+    
+    // 如果队伍变化，保存并同步
+    if (teamChanged) {
+        TeamManager.save();
+    }
     
     // 检查单抽按钮
     if (x >= game.width / 2 - 200 && x <= game.width / 2 - 40 &&
@@ -1069,6 +1081,7 @@ function gameLoop(timestamp) {
         
         update(deltaTime);
         render();
+        drawGameUI();
     }
     
     requestAnimationFrame(gameLoop);
