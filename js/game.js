@@ -568,6 +568,9 @@ function drawMap() {
     
     // 小地图（右上角）
     drawMiniMap();
+    
+    // 肉鸽按钮
+    drawBattleRogueButton();
 }
 
 // 绘制小地图
