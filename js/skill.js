@@ -219,6 +219,9 @@ function createProjectile(caster, angle, damage, range) {
     const speed = 400;
     const life = range / speed;
     
+    // 李逍遥的技能使用剑形投射物
+    const isLiXiaoyao = caster.name === '李逍遥';
+    
     game.projectiles.push({
         x: caster.x,
         y: caster.y,
@@ -228,7 +231,8 @@ function createProjectile(caster, angle, damage, range) {
         isCrit: Math.random() < caster.critRate,
         life: life,
         range: range,
-        type: 'normal'
+        type: isLiXiaoyao ? 'sword' : 'normal',
+        angle: angle
     });
 }
 

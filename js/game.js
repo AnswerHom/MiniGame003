@@ -89,6 +89,8 @@ function handleClick(e) {
     if (game.state === 'menu') {
         // 点击开始进入大厅
         game.state = 'lobby';
+        // 重置队伍为空，让玩家重新选择
+        game.players = [];
     } else if (game.state === 'lobby') {
         // 大厅交互
         selectCharacter(x, y);
@@ -320,10 +322,18 @@ function drawLobby() {
         const x = teamStartX + i * 120;
         const y = 170;
         const owned = game.gachaState.ownedCharacters.includes(char);
+        const inTeam = game.players.some(p => p.name === char);
         
         // 角色框
         ctx.fillStyle = owned ? getCharacterColor(char) : '#333';
         ctx.fillRect(x - 40, y - 30, 80, 80);
+        
+        // 如果在队伍中，显示选中边框
+        if (inTeam) {
+            ctx.strokeStyle = COLORS.ui.gold;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(x - 43, y - 33, 86, 86);
+        }
         
         if (owned) {
             ctx.fillStyle = '#fff';
@@ -452,6 +462,32 @@ function drawGachaResults() {
 function selectCharacter(x, y) {
     const ctx = game.ctx;
     
+    // 检查是否点击了角色头像（选择/取消角色）
+    const charList = ['李逍遥', '赵灵儿', '阿奴'];
+    const teamStartX = game.width / 2 - 120;
+    const charY = 170;
+    
+    charList.forEach((char, i) => {
+        const charX = teamStartX + i * 120;
+        // 检查是否点击了角色框
+        if (x >= charX - 40 && x <= charX + 40 &&
+            y >= charY - 30 && y <= charY + 50) {
+            // 检查是否已拥有该角色
+            if (game.gachaState.ownedCharacters.includes(char)) {
+                const inTeamIndex = game.players.findIndex(p => p.name === char);
+                if (inTeamIndex >= 0) {
+                    // 已在队伍中，移除
+                    game.players.splice(inTeamIndex, 1);
+                } else {
+                    // 未在队伍中，添加（最多5人）
+                    if (game.players.length < 5) {
+                        game.players.push(createPlayer(char));
+                    }
+                }
+            }
+        }
+    });
+    
     // 检查单抽按钮
     if (x >= game.width / 2 - 200 && x <= game.width / 2 - 40 &&
         y >= game.height - 160 && y <= game.height - 110) {
@@ -538,10 +574,7 @@ function drawGacha(count) {
             newChars.push(drawnChar);
             game.gachaState.ownedCharacters.push(drawnChar);
             
-            // 如果队伍未满5人，自动上阵
-            if (game.players.length < 5) {
-                game.players.push(createPlayer(drawnChar));
-            }
+            // 不再自动上阵，需要玩家在大厅手动选择
             // 初始化装备卡牌槽位
             if (!game.gachaState.equippedCards[drawnChar]) {
                 game.gachaState.equippedCards[drawnChar] = [];
@@ -1252,6 +1285,17 @@ function render() {
             ctx.beginPath();
             ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
             ctx.fill();
+        } else if (p.type === 'sword') {
+            // 李逍遥 - 剑形投射物（方形）
+            ctx.save();
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.angle);
+            ctx.fillStyle = p.isCrit ? COLORS.ui.gold : '#87CEEB';
+            ctx.fillRect(-8, -3, 16, 6);
+            // 剑光效果
+            ctx.fillStyle = p.isCrit ? 'rgba(255, 215, 0, 0.5)' : 'rgba(135, 206, 235, 0.5)';
+            ctx.fillRect(-10, -4, 20, 8);
+            ctx.restore();
         } else {
             // 普通投射物
             ctx.fillStyle = p.isCrit ? COLORS.ui.gold : '#fff';
