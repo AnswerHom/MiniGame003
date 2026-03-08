@@ -236,3 +236,14 @@ const CARDS = {
     通用: ['身轻如燕', '铜筋铁骨', '暴击强化', '致命一击'],
     功能: ['冰心玉壶', '观音护体', '起死回生', '灵泉涌现']
 };
+
+// 获取卡牌颜色
+function getCardColor(rarity) {
+    const colors = {
+        '普通': '#44ff44',
+        '稀有': '#4a90d9',
+        '史诗': '#9400D3',
+        '传说': '#ffd700'
+    };
+    return colors[rarity] || '#fff';
+}
