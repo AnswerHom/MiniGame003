@@ -126,12 +126,17 @@ function initGame() {
     // 初始化队伍系统（v2.3.1）
     TeamManager.init();  // 先初始化
     TeamManager.load();  // 再加载保存的数据
-    game.team = TeamManager.getMembers();
-    if (game.team.length === 0) {
-        game.team = ['李逍遥'];
+    
+    // v2.8.0 修复：清理异常队伍数据（超过5人或为空时重置）
+    let teamMembers = TeamManager.getMembers();
+    if (teamMembers.length > 5 || teamMembers.length === 0) {
+        localStorage.removeItem('paladin_team');
+        TeamManager.init();
         TeamManager.addMember('李逍遥');
         TeamManager.save();
+        teamMembers = ['李逍遥'];
     }
+    game.team = teamMembers;
     
     // 启动游戏循环
     game.lastTime = performance.now();
