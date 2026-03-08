@@ -2121,9 +2121,9 @@ function drawGameUI() {
 function drawBattleRogueButton() {
     const ctx = game.ctx;
     
-    // v2.7.0 按钮位置：左下角，主角状态上方
-    const btnX = 20;
-    const btnY = game.height - 150;
+    // v2.7.0 按钮位置：右下角
+    const btnX = game.width - 100;
+    const btnY = game.height - 60;
     const btnW = 80;
     const btnH = 35;
     
@@ -2135,7 +2135,7 @@ function drawBattleRogueButton() {
     ctx.fillStyle = '#fff';
     ctx.font = '14px Microsoft YaHei';
     ctx.textAlign = 'center';
-    ctx.fillText('抽卡', btnX + btnW / 2, btnY + 23);
+    ctx.fillText('肉鸽', btnX + btnW / 2, btnY + 23);
     
     // 保存按钮区域供点击检测
     game.battleRogueBtn = { x: btnX, y: btnY, w: btnW, h: btnH };
