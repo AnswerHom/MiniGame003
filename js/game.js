@@ -1758,14 +1758,28 @@ function render() {
     // 绘制装饰
     drawBattleDecorations();
     
-    // 绘制敌人
+    // 绘制敌人（v2.4.0 怪物美术与体型设计）
     game.enemies.forEach(enemy => {
+        // v2.4.0 BOSS光效环绕
+        if (enemy.isBoss && enemy.hasAura) {
+            ctx.save();
+            ctx.translate(enemy.x, enemy.y);
+            ctx.rotate(game.time * 2); // 旋转光环
+            ctx.strokeStyle = '#ffd700';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([10, 5]);
+            ctx.beginPath();
+            ctx.arc(0, 0, enemy.size + 10, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+        }
+        
         // 精英怪光环效果
         if (enemy.isElite) {
             ctx.strokeStyle = 'rgba(148, 0, 211, 0.3)';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.arc(enemy.x, enemy.y, enemy.auraRange, 0, Math.PI * 2);
+            ctx.arc(enemy.x, enemy.y, enemy.auraRange || 50, 0, Math.PI * 2);
             ctx.stroke();
         }
         
@@ -1774,6 +1788,15 @@ function render() {
         ctx.beginPath();
         ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2);
         ctx.fill();
+        
+        // v2.4.0 怪物显示文字
+        if (enemy.displayText) {
+            ctx.fillStyle = '#fff';
+            ctx.font = `bold ${Math.max(10, enemy.size * 0.8)}px Microsoft YaHei`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(enemy.displayText, enemy.x, enemy.y);
+        }
         
         // 血条
         const hpPercent = enemy.hp / enemy.maxHp;

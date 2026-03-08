@@ -12,7 +12,8 @@ const ENEMY_TYPES = {
         exp: 5,
         size: 15,
         color: '#a0aec0',
-        type: 'ghost'
+        type: 'ghost',
+        displayText: '阴'  // v2.4.0 显示文字
     },
     蝙蝠: {
         name: '蝙蝠',
@@ -24,7 +25,8 @@ const ENEMY_TYPES = {
         exp: 8,
         size: 12,
         color: '#1a202c',
-        type: 'agile'
+        type: 'agile',
+        displayText: '蝠'
     },
     毒蛇: {
         name: '毒蛇',
@@ -36,7 +38,8 @@ const ENEMY_TYPES = {
         exp: 10,
         size: 18,
         color: '#38a169',
-        type: 'warrior'
+        type: 'warrior',
+        displayText: '蛇'
     },
     // v2.3.2 新增怪物
     蛤蟆: {
@@ -47,9 +50,10 @@ const ENEMY_TYPES = {
         moveSpeed: 25,
         attackRange: 30,
         exp: 12,
-        size: 25,
+        size: 18,  // v2.4.0 调整体型
         color: '#2d5016',
         type: 'tank',
+        displayText: '蛤',
         specialEffect: 'slow',
         slowAmount: 0.3,
         slowDuration: 2
@@ -64,7 +68,8 @@ const ENEMY_TYPES = {
         exp: 10,
         size: 10,
         color: '#d69e2e',
-        type: 'agile'
+        type: 'agile',
+        displayText: '蜂'
     },
     骷髅: {
         name: '骷髅',
@@ -77,6 +82,7 @@ const ENEMY_TYPES = {
         size: 18,
         color: '#e2e8f0',
         type: 'warrior',
+        displayText: '骨',
         specialEffect: 'resistKnockback',
         knockbackReduction: 0.5
     },
@@ -88,9 +94,10 @@ const ENEMY_TYPES = {
         moveSpeed: 20,
         attackRange: 30,
         exp: 18,
-        size: 22,
+        size: 18,  // v2.4.0 调整体型
         color: '#276749',
         type: 'tank',
+        displayText: '僵',
         specialEffect: 'slow',
         slowAmount: 0.2,
         slowDuration: 1.5
@@ -106,6 +113,7 @@ const ENEMY_TYPES = {
         size: 15,
         color: '#ed8936',
         type: 'mage',
+        displayText: '狐',
         specialEffect: 'aoe',
         aoeRadius: 50
     }
@@ -157,6 +165,9 @@ const EnemySpawner = {
         const eliteAttackMult = isElite ? 2 : 1;
         const eliteSpeedMult = isElite ? 1.2 : 1;
         const eliteExpMult = isElite ? 5 : 1;
+        
+        // v2.4.0 体型倍数
+        const sizeMultiplier = isElite ? 1.3 : 1;
 
         return {
             name: config.name,
@@ -167,13 +178,16 @@ const EnemySpawner = {
             moveSpeed: Math.floor(config.moveSpeed * speedGrowth * eliteSpeedMult),
             attackRange: config.attackRange,
             exp: config.exp * eliteExpMult,
-            size: config.size,
+            size: config.size * sizeMultiplier,  // v2.4.0 体型调整
+            baseSize: config.size,
             color: isElite ? '#ff4444' : config.color, // 精英怪红色
             x: x,
             y: y,
             alive: true,
             lastAttack: 0,
             attackInterval: 1 / config.attackSpeed,
+            // v2.4.0 显示文字
+            displayText: config.displayText || config.name.charAt(0),
             // 特殊效果
             specialEffect: config.specialEffect,
             slowAmount: config.slowAmount,
@@ -244,7 +258,7 @@ const EnemySpawner = {
         return { x, y };
     },
 
-    // 生成BOSS（v2.3.3 第12波）
+    // 生成BOSS（v2.3.3 第12波, v2.4.0 体型1.5倍）
     spawnBoss() {
         const bossConfig = {
             name: 'BOSS',
@@ -254,7 +268,8 @@ const EnemySpawner = {
             moveSpeed: 40,
             attackRange: 60,
             exp: 500,
-            size: 50,
+            baseSize: 20,  // v2.4.0 基础体型
+            size: 30,      // v2.4.0 1.5倍 = 20*1.5
             color: '#ff0000'
         };
 
@@ -268,6 +283,7 @@ const EnemySpawner = {
             moveSpeed: bossConfig.moveSpeed,
             attackRange: bossConfig.attackRange,
             exp: bossConfig.exp,
+            baseSize: bossConfig.baseSize,
             size: bossConfig.size,
             color: bossConfig.color,
             x: pos.x,
@@ -275,7 +291,10 @@ const EnemySpawner = {
             alive: true,
             lastAttack: 0,
             attackInterval: 1 / bossConfig.attackSpeed,
-            isBoss: true
+            // v2.4.0
+            displayText: 'BOSS',
+            isBoss: true,
+            hasAura: true  // v2.4.0 BOSS光效环绕
         });
     }
 };
