@@ -1210,6 +1210,13 @@ function update(dt) {
         p.y += p.vy * dt;
         p.life -= dt;
         
+        // v2.7.0 子弹可被障碍物阻挡
+        const hitObstacle = checkObstacleCollision(p.x, p.y, 5);
+        if (hitObstacle) {
+            p.life = 0;
+            return false;
+        }
+        
         // 碰撞检测
         game.enemies.forEach(enemy => {
             if (!enemy.alive) return;
@@ -2034,13 +2041,13 @@ function drawGameUI() {
     drawBattleRogueButton();
 }
 
-// v2.6.0 绘制战斗肉鸽按钮
+// v2.6.0 绘制战斗肉鸽按钮（v2.7.0 移至左下角）
 function drawBattleRogueButton() {
     const ctx = game.ctx;
     
-    // 按钮位置：右上角
-    const btnX = game.width - 100;
-    const btnY = 80;
+    // v2.7.0 按钮位置：左下角，主角状态上方
+    const btnX = 20;
+    const btnY = game.height - 150;
     const btnW = 80;
     const btnH = 35;
     

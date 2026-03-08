@@ -4,7 +4,7 @@
 const ENEMY_TYPES = {
     阴魂: {
         name: '阴魂',
-        hp: 80,  // v2.6.0 优化：50→80
+        hp: 150,  // v2.6.0: 80 → v2.7.0: 150
         attack: 10,
         attackSpeed: 1.0,
         moveSpeed: 30,
@@ -17,7 +17,7 @@ const ENEMY_TYPES = {
     },
     蝙蝠: {
         name: '蝙蝠',
-        hp: 60,  // v2.6.0 优化：40→60
+        hp: 120,  // v2.6.0: 60 → v2.7.0: 120
         attack: 15,
         attackSpeed: 1.2,
         moveSpeed: 50,
@@ -30,7 +30,7 @@ const ENEMY_TYPES = {
     },
     毒蛇: {
         name: '毒蛇',
-        hp: 100,  // v2.6.0 优化：60→100
+        hp: 150,  // v2.6.0: 100 → v2.7.0: 150
         attack: 20,
         attackSpeed: 0.8,
         moveSpeed: 40,
@@ -44,7 +44,7 @@ const ENEMY_TYPES = {
     // v2.3.2 新增怪物
     蛤蟆: {
         name: '蛤蟆',
-        hp: 200,  // v2.6.0 优化：150→200
+        hp: 300,  // v2.6.0: 200 → v2.7.0: 300
         attack: 15,
         attackSpeed: 0.5,
         moveSpeed: 25,
@@ -60,7 +60,7 @@ const ENEMY_TYPES = {
     },
     毒蜂: {
         name: '毒蜂',
-        hp: 50,  // v2.6.0 优化：30→50
+        hp: 120,  // v2.6.0: 50 → v2.7.0: 120
         attack: 25,
         attackSpeed: 1.5,
         moveSpeed: 60,
@@ -73,7 +73,7 @@ const ENEMY_TYPES = {
     },
     骷髅: {
         name: '骷髅',
-        hp: 120,  // v2.6.0 优化：80→120
+        hp: 180,  // v2.6.0: 120 → v2.7.0: 180
         attack: 30,
         attackSpeed: 1.0,
         moveSpeed: 35,
@@ -88,7 +88,7 @@ const ENEMY_TYPES = {
     },
     僵尸: {
         name: '僵尸',
-        hp: 250,  // v2.6.0 优化：200→250
+        hp: 400,  // v2.6.0: 250 → v2.7.0: 400
         attack: 20,
         attackSpeed: 0.4,
         moveSpeed: 20,
@@ -104,7 +104,7 @@ const ENEMY_TYPES = {
     },
     狐狸: {
         name: '狐狸',
-        hp: 80,  // v2.6.0 优化：50→80
+        hp: 150,  // v2.6.0: 80 → v2.7.0: 150
         attack: 40,
         attackSpeed: 0.8,
         moveSpeed: 40,
