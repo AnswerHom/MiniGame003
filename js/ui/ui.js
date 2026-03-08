@@ -48,7 +48,7 @@ function drawLobby() {
     // 队伍显示
     ctx.fillStyle = '#fff';
     ctx.font = '18px Microsoft YaHei';
-    ctx.fillText('当前队伍 (' + game.players.length + '/5)', game.width / 2, 130);
+    ctx.fillText('当前队伍 (' + game.team.length + '/5)', game.width / 2, 130);
     
     // 绘制已拥有角色
     const charList = CHARACTER_LIST;
@@ -58,7 +58,7 @@ function drawLobby() {
         const x = teamStartX + i * 120;
         const y = 200;
         const owned = game.gachaState.ownedCharacters.includes(char);
-        const inTeam = game.players.some(p => p.name === char);
+        const inTeam = game.team.includes(char);
         
         // 角色框
         ctx.fillStyle = owned ? getCharacterColor(char) : '#333';
@@ -122,7 +122,7 @@ function drawLobby() {
     ctx.fillText('100💰 → 10💎', game.width / 2, game.height - 75);
     
     // 开始游戏按钮
-    if (game.players.length > 0) {
+    if (game.team.length > 0) {
         ctx.fillStyle = COLORS.ui.gold;
         ctx.fillRect(game.width / 2 - 80, game.height - 50, 160, 35);
         ctx.fillStyle = '#000';
@@ -172,14 +172,14 @@ function drawGachaResults() {
     if (game.gachaState.drawnCardsList && game.gachaState.drawnCardsList.length > 0) {
         ctx.fillStyle = '#fff';
         ctx.font = '18px Microsoft YaHei';
-        ctx.fillText('获得卡牌:', game.width / 2, y + 120);
+        ctx.fillText('获得卡牌:', game.width / 2, game.height / 2 + 120);
         
         const cardList = game.gachaState.drawnCardsList;
         const cardStartX = game.width / 2 - (cardList.length * 60 + (cardList.length - 1) * 10) / 2;
         
         cardList.forEach((card, i) => {
             const x = cardStartX + i * 70;
-            const cardY = y + 140;
+            const cardY = game.height / 2 + 140;
             
             ctx.fillStyle = getCardColor(card.rarity);
             ctx.fillRect(x - 25, cardY - 15, 50, 30);
