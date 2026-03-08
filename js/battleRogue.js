@@ -40,18 +40,37 @@ function closeBattleRogue() {
     battleRogueState.active = false;
 }
 
-// 生成卡牌选项
+// 生成卡牌选项（v2.8.0 按队伍英雄筛选卡牌池）
 function generateCardOptions() {
     battleRogueState.availableCards = [];
-    const allCards = Object.keys(CARD_DATA);
+    
+    // v2.8.0 获取队伍中所有英雄的卡牌
+    const teamMembers = TeamManager.getMembers();
+    const teamCards = [];
+    
+    // 遍历所有卡牌，筛选队伍英雄相关的卡牌
+    for (const cardName in CARD_DATA) {
+        const cardData = CARD_DATA[cardName];
+        // 检查卡牌是否属于队伍中的英雄
+        if (teamMembers.includes(cardData.skill)) {
+            teamCards.push(cardName);
+        }
+        // 也包含通用卡牌
+        if (cardData.skill === '通用' || cardData.skill === '功能') {
+            teamCards.push(cardName);
+        }
+    }
+    
+    // 如果队伍没有卡牌，使用全部卡牌
+    const cardPool = teamCards.length > 0 ? teamCards : Object.keys(CARD_DATA);
     
     for (let i = 0; i < BATTLE_ROGUE_CONFIG.cardOptions; i++) {
-        const randomCard = allCards[Math.floor(Math.random() * allCards.length)];
+        const randomCard = cardPool[Math.floor(Math.random() * cardPool.length)];
         battleRogueState.availableCards.push(randomCard);
     }
 }
 
-// 抽卡
+// 抽卡（v2.8.0 按队伍英雄筛选卡牌池）
 function battleDrawCard() {
     if (game.gold < battleRogueState.currentCost) {
         console.log('金币不足');
@@ -62,14 +81,26 @@ function battleDrawCard() {
     battleRogueState.drawCount++;
     
     // 费用递增：第1次100，第2次150，第3次225...
-    // 公式：100 * (1.5 ^ drawCount)
     battleRogueState.currentCost = Math.floor(
         BATTLE_ROGUE_CONFIG.baseCost * Math.pow(BATTLE_ROGUE_CONFIG.costGrowth, battleRogueState.drawCount)
     );
     
+    // v2.8.0 获取队伍中所有英雄的卡牌
+    const teamMembers = TeamManager.getMembers();
+    const teamCards = [];
+    for (const cardName in CARD_DATA) {
+        const cardData = CARD_DATA[cardName];
+        if (teamMembers.includes(cardData.skill)) {
+            teamCards.push(cardName);
+        }
+        if (cardData.skill === '通用' || cardData.skill === '功能') {
+            teamCards.push(cardName);
+        }
+    }
+    const cardPool = teamCards.length > 0 ? teamCards : Object.keys(CARD_DATA);
+    
     // 随机获得1张卡牌
-    const allCards = Object.keys(CARD_DATA);
-    const drawnCard = allCards[Math.floor(Math.random() * allCards.length)];
+    const drawnCard = cardPool[Math.floor(Math.random() * cardPool.length)];
     
     // 添加到玩家卡牌库（这里简化处理，实际应该加到对应角色的卡牌库）
     if (!game.playerCards) game.playerCards = [];
