@@ -670,7 +670,7 @@ function drawLobby() {
             ctx.fillText(char, x, y + 65);
             
             // 选中标记
-            if (selected) {
+            if (inTeam) {
                 ctx.fillStyle = '#44ff44';
                 ctx.beginPath();
                 ctx.arc(x + 35, y - 20, 10, 0, Math.PI * 2);
