@@ -845,6 +845,10 @@ function selectCharacter(x, y) {
 
 // 开始战斗
 function startGame() {
+    // 初始化世界地图尺寸（比屏幕大50%）
+    game.worldWidth = game.width * 1.5;
+    game.worldHeight = game.height * 1.5;
+    
     // 根据队伍创建玩家（v2.3.1 确保使用最新队伍数据）
     game.players = [];
     const currentTeam = TeamManager.getMembers();
