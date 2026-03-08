@@ -250,7 +250,8 @@ function createProjectile(caster, angle, damage, range, options = {}) {
         isSword: options.isSword || false,
         isGold: options.isGold || false,
         length: options.length || 30,
-        width: options.width || 8
+        width: options.width || 8,
+        swordColor: options.swordColor || '#3182ce'  // v2.5.0 剑颜色
     });
 }
 
