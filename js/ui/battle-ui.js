@@ -65,13 +65,26 @@ function drawJoystick() {
     let knobY = baseY;
     
     if (game.joystick.active) {
-        const dx = game.joystick.x - baseX;
-        const dy = game.joystick.y - baseY;
+        const dx = game.joystick.currentX - baseX;
+        const dy = game.joystick.currentY - baseY;
         const dist = Math.min(Math.sqrt(dx * dx + dy * dy), baseRadius - 20);
         const angle = Math.atan2(dy, dx);
         
         knobX = baseX + Math.cos(angle) * dist;
         knobY = baseY + Math.sin(angle) * dist;
+        
+        // 根据摇杆方向更新玩家目标位置
+        const player = game.players[0];
+        if (player && player.alive) {
+            const moveX = game.joystick.currentX - game.joystick.originX;
+            const moveY = game.joystick.currentY - game.joystick.originY;
+            const moveDist = Math.sqrt(moveX * moveX + moveY * moveY);
+            
+            if (moveDist > 5) {
+                player.targetX = player.x + moveX * 2;
+                player.targetY = player.y + moveY * 2;
+            }
+        }
     }
     
     ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
