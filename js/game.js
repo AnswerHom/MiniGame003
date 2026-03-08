@@ -124,7 +124,8 @@ function initGame() {
     generateObstacles();
     
     // 初始化队伍系统（v2.3.1）
-    TeamManager.load();
+    TeamManager.init();  // 先初始化
+    TeamManager.load();  // 再加载保存的数据
     game.team = TeamManager.getMembers();
     if (game.team.length === 0) {
         game.team = ['李逍遥'];
@@ -812,11 +813,15 @@ function selectCharacter(x, y) {
 
 // 开始战斗
 function startGame() {
-    // 根据队伍创建玩家
+    // 根据队伍创建玩家（v2.3.1 确保使用最新队伍数据）
     game.players = [];
-    game.team.forEach(charName => {
+    const currentTeam = TeamManager.getMembers();
+    currentTeam.forEach(charName => {
         game.players.push(createPlayer(charName));
     });
+    
+    // 同时更新 game.team 保持一致
+    game.team = currentTeam;
     
     // 重置摄像机到世界中心
     game.camera.x = game.worldWidth / 2;
