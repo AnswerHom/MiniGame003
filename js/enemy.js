@@ -4,7 +4,7 @@
 const ENEMY_TYPES = {
     阴魂: {
         name: '阴魂',
-        hp: 50,
+        hp: 80,  // v2.6.0 优化：50→80
         attack: 10,
         attackSpeed: 1.0,
         moveSpeed: 30,
@@ -13,11 +13,11 @@ const ENEMY_TYPES = {
         size: 15,
         color: '#a0aec0',
         type: 'ghost',
-        displayText: '阴'  // v2.4.0 显示文字
+        displayText: '阴'
     },
     蝙蝠: {
         name: '蝙蝠',
-        hp: 40,
+        hp: 60,  // v2.6.0 优化：40→60
         attack: 15,
         attackSpeed: 1.2,
         moveSpeed: 50,
@@ -30,7 +30,7 @@ const ENEMY_TYPES = {
     },
     毒蛇: {
         name: '毒蛇',
-        hp: 60,
+        hp: 100,  // v2.6.0 优化：60→100
         attack: 20,
         attackSpeed: 0.8,
         moveSpeed: 40,
@@ -44,13 +44,13 @@ const ENEMY_TYPES = {
     // v2.3.2 新增怪物
     蛤蟆: {
         name: '蛤蟆',
-        hp: 150,
+        hp: 200,  // v2.6.0 优化：150→200
         attack: 15,
         attackSpeed: 0.5,
         moveSpeed: 25,
         attackRange: 30,
         exp: 12,
-        size: 18,  // v2.4.0 调整体型
+        size: 18,
         color: '#2d5016',
         type: 'tank',
         displayText: '蛤',
@@ -60,7 +60,7 @@ const ENEMY_TYPES = {
     },
     毒蜂: {
         name: '毒蜂',
-        hp: 30,
+        hp: 50,  // v2.6.0 优化：30→50
         attack: 25,
         attackSpeed: 1.5,
         moveSpeed: 60,
@@ -73,7 +73,7 @@ const ENEMY_TYPES = {
     },
     骷髅: {
         name: '骷髅',
-        hp: 80,
+        hp: 120,  // v2.6.0 优化：80→120
         attack: 30,
         attackSpeed: 1.0,
         moveSpeed: 35,
@@ -88,13 +88,13 @@ const ENEMY_TYPES = {
     },
     僵尸: {
         name: '僵尸',
-        hp: 200,
+        hp: 250,  // v2.6.0 优化：200→250
         attack: 20,
         attackSpeed: 0.4,
         moveSpeed: 20,
         attackRange: 30,
         exp: 18,
-        size: 18,  // v2.4.0 调整体型
+        size: 18,
         color: '#276749',
         type: 'tank',
         displayText: '僵',
@@ -104,7 +104,7 @@ const ENEMY_TYPES = {
     },
     狐狸: {
         name: '狐狸',
-        hp: 50,
+        hp: 80,  // v2.6.0 优化：50→80
         attack: 40,
         attackSpeed: 0.8,
         moveSpeed: 40,

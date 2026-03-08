@@ -117,6 +117,9 @@ function initGame() {
     game.camera.targetY = game.camera.y;
     game.camera.lastUpdate = performance.now();
     
+    // v2.6.0 初始化战斗肉鸽系统
+    initBattleRogue();
+    
     // 生成障碍物
     generateObstacles();
     
@@ -184,6 +187,21 @@ function handleClick(e) {
             game.state = 'lobby';
         }
     } else if (game.state === 'playing') {
+        // v2.6.0 战斗肉鸽界面点击
+        if (battleRogueState.active) {
+            handleBattleRogueClick(x, y);
+            return;
+        }
+        
+        // 检查战斗肉鸽按钮点击
+        if (game.battleRogueBtn) {
+            const btn = game.battleRogueBtn;
+            if (x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) {
+                openBattleRogue();
+                return;
+            }
+        }
+        
         // 移动玩家
         movePlayer(x, y);
     }
@@ -2011,6 +2029,36 @@ function drawGameUI() {
     
     // 绘制小地图
     drawMiniMap();
+    
+    // v2.6.0 战斗肉鸽按钮
+    drawBattleRogueButton();
+}
+
+// v2.6.0 绘制战斗肉鸽按钮
+function drawBattleRogueButton() {
+    const ctx = game.ctx;
+    
+    // 按钮位置：右上角
+    const btnX = game.width - 100;
+    const btnY = 80;
+    const btnW = 80;
+    const btnH = 35;
+    
+    // 按钮背景
+    ctx.fillStyle = '#4a5568';
+    ctx.fillRect(btnX, btnY, btnW, btnH);
+    
+    // 按钮文字
+    ctx.fillStyle = '#fff';
+    ctx.font = '14px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText('抽卡', btnX + btnW / 2, btnY + 23);
+    
+    // 保存按钮区域供点击检测
+    game.battleRogueBtn = { x: btnX, y: btnY, w: btnW, h: btnH };
+    
+    // v2.6.0 绘制战斗肉鸽界面
+    drawBattleRogue();
 }
 
 // 绘制游戏结束界面
