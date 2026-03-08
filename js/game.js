@@ -139,7 +139,22 @@ function initGame() {
         TeamManager.save();
         teamMembers = ['李逍遥'];
     }
-    game.team = teamMembers;
+    
+    // 修复：队伍只能包含已拥有的角色
+    const ownedChars = game.gachaState.ownedCharacters;
+    teamMembers = teamMembers.filter(c => ownedChars.includes(c));
+    
+    // 如果过滤后队伍为空，只添加第一个拥有的角色
+    if (teamMembers.length === 0 && ownedChars.length > 0) {
+        teamMembers = [ownedChars[0]];
+    }
+    
+    // 同步到TeamManager
+    TeamManager.init();
+    teamMembers.forEach(c => TeamManager.addMember(c));
+    TeamManager.save();
+    
+    game.team = TeamManager.getMembers();
     
     // 启动游戏循环
     game.lastTime = performance.now();
@@ -174,7 +189,17 @@ function handleClick(e) {
     if (game.state === 'menu') {
         // 点击开始进入大厅
         game.state = 'lobby';
-        // 重置队伍为空，让玩家重新选择
+        // 重置队伍：只保留已拥有的角色
+        const ownedChars = game.gachaState.ownedCharacters;
+        game.team = game.team.filter(c => ownedChars.includes(c));
+        if (game.team.length === 0 && ownedChars.length > 0) {
+            game.team = [ownedChars[0]];
+        }
+        // 同步到TeamManager
+        TeamManager.init();
+        game.team.forEach(c => TeamManager.addMember(c));
+        TeamManager.save();
+        // 清空大厅显示的玩家
         game.players = [];
     } else if (game.state === 'lobby') {
         // 大厅交互
