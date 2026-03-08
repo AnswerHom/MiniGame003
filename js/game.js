@@ -93,6 +93,7 @@ const game = {
     // 虚拟摇杆
     joystick: {
         active: false,
+        visible: false,
         originX: 0,
         originY: 0,
         currentX: 0,
@@ -281,7 +282,7 @@ function handleKeyDown(e) {
     }
 }
 
-// 处理触摸开始 - 虚拟摇杆
+// 处理触摸开始 - 虚拟摇杆（v2.10.0 任意位置显示）
 function handleTouchStart(e) {
     if (game.state !== 'playing') return;
     
@@ -292,15 +293,14 @@ function handleTouchStart(e) {
     const x = touch.clientX - rect.left;
     const y = touch.clientY - rect.top;
     
-    // 只在左侧区域激活摇杆（扩大范围到一半）
-    if (x < game.width * 0.5) {
-        game.joystick.active = true;
-        game.joystick.originX = x;
-        game.joystick.originY = y;
-        game.joystick.currentX = x;
-        game.joystick.currentY = y;
-        game.joystick.touchId = touch.identifier;
-    }
+    // 任意位置激活摇杆
+    game.joystick.active = true;
+    game.joystick.visible = true;
+    game.joystick.originX = x;
+    game.joystick.originY = y;
+    game.joystick.currentX = x;
+    game.joystick.currentY = y;
+    game.joystick.touchId = touch.identifier;
 }
 
 // 处理触摸移动 - 虚拟摇杆
@@ -347,6 +347,7 @@ function handleTouchEnd(e) {
         const touch = e.changedTouches[i];
         if (touch.identifier === game.joystick.touchId) {
             game.joystick.active = false;
+            game.joystick.visible = false;
             game.joystick.touchId = null;
             break;
         }

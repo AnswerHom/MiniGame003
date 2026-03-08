@@ -45,13 +45,16 @@ function drawGameUI() {
     drawBattleRogueButton();
 }
 
-// 绘制虚拟摇杆
+// 绘制虚拟摇杆（v2.10.0 任意位置显示，默认隐藏）
 function drawJoystick() {
     const ctx = game.ctx;
     
-    // 摇杆区域（左下角）
-    const baseX = 80;
-    const baseY = game.height - 80;
+    // 默认隐藏，拖动时显示
+    if (!game.joystick.visible) return;
+    
+    // 摇杆位置为触摸位置
+    const baseX = game.joystick.originX;
+    const baseY = game.joystick.originY;
     const baseRadius = 50;
     
     // 摇杆底座
