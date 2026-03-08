@@ -113,9 +113,9 @@ function initGame() {
     game.worldWidth = game.width * 1.5;
     game.worldHeight = game.height * 1.5;
     
-    // 初始化摄像机
-    game.camera.x = game.width / 2;
-    game.camera.y = game.height / 2;
+    // 初始化摄像机（设置为世界中心）
+    game.camera.x = game.worldWidth / 2;
+    game.camera.y = game.worldHeight / 2;
     game.camera.targetX = game.camera.x;
     game.camera.targetY = game.camera.y;
     game.camera.lastUpdate = performance.now();
