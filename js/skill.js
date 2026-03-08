@@ -47,8 +47,10 @@ const SkillManager = {
                 createProjectile(caster, angle, damage, skill.range, {
                     isSword: isLiXiaoyao,
                     isGold: false,
-                    length: 25,
-                    width: 6
+                    // v2.5.0 御剑术剑形发射物
+                    length: 60,
+                    width: 10,
+                    swordColor: '#3182ce'
                 });
             }
         } else {
@@ -62,8 +64,10 @@ const SkillManager = {
                 createProjectile(caster, angle, damage, skill.range, {
                     isSword: isLiXiaoyao,
                     isGold: false,
-                    length: 30,
-                    width: 8
+                    // v2.5.0 御剑术剑形发射物
+                    length: 60,
+                    width: 10,
+                    swordColor: '#3182ce'
                 });
             }
         }

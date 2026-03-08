@@ -916,9 +916,21 @@ function addCardToInventory(cardName) {
     game.gachaState.cardInventory[cardName]++;
 }
 
+// 角色颜色配置（v2.5.0）
+const PLAYER_COLORS = {
+    '李逍遥': '#3182ce',  // 蓝色
+    '赵灵儿': '#d53f8c',  // 粉色
+    '阿奴': '#38b2ac'      // 青色
+};
+
 // 创建玩家
 function createPlayer(characterName) {
     const char = CHARACTERS[characterName];
+    // v2.5.0 角色颜色
+    const playerColor = PLAYER_COLORS[characterName] || '#3182ce';
+    // v2.5.0 显示姓氏
+    const surname = characterName.charAt(0);
+    
     const player = {
         name: char.name,
         role: char.role,
@@ -935,6 +947,8 @@ function createPlayer(characterName) {
         targetX: game.worldWidth / 2,
         targetY: game.worldHeight / 2,
         size: 20,
+        color: playerColor,  // v2.5.0 角色颜色
+        displayText: surname,  // v2.5.0 显示姓氏
         skills: char.skills,
         skillCooldowns: {},
         lastAttack: 0,
@@ -1807,11 +1821,13 @@ function render() {
         ctx.fillRect(enemy.x - enemy.size, enemy.y - enemy.size - 8, barWidth * hpPercent, 4);
     });
     
-    // 绘制玩家
+    // 绘制玩家（v2.5.0 主角形象）
     game.players.forEach(player => {
         if (!player.alive) return;
         
         const hpPercent = player.hp / player.maxHp;
+        // v2.5.0 角色颜色
+        const playerColor = player.color || '#3182ce';
         
         // 血量环 - 根据血量百分比显示不同颜色
         let hpColor;
@@ -1837,16 +1853,26 @@ function render() {
         ctx.arc(player.x, player.y, 23, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * hpPercent);
         ctx.stroke();
         
-        // 玩家圆形（头像）
-        ctx.fillStyle = COLORS.ui.primary;
+        // 玩家圆形（头像）- v2.5.0 使用角色颜色
+        ctx.fillStyle = playerColor;
         ctx.beginPath();
         ctx.arc(player.x, player.y, 15, 0, Math.PI * 2);
         ctx.fill();
+        
+        // v2.5.0 显示姓氏
+        if (player.displayText) {
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 14px Microsoft YaHei';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(player.displayText, player.x, player.y);
+        }
         
         // 玩家名称
         ctx.fillStyle = '#fff';
         ctx.font = '12px Microsoft YaHei';
         ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
         ctx.fillText(player.name, player.x, player.y - 35);
         
         // 护盾显示
@@ -1892,33 +1918,37 @@ function render() {
             ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
             ctx.fill();
         } else if (p.isSword) {
-            // 飞剑 - 李逍遥技能
+            // 飞剑 - 李逍遥技能（v2.5.0 剑形发射物）
             ctx.save();
             ctx.translate(p.x, p.y);
             ctx.rotate(Math.atan2(p.vy, p.vx) + Math.PI / 2);
             
-            // 剑光拖尾
-            ctx.fillStyle = p.isGold ? 'rgba(255, 215, 0, 0.3)' : 'rgba(200, 200, 255, 0.3)';
+            // v2.5.0 淡蓝色拖尾
+            const swordColor = p.swordColor || '#3182ce';
+            ctx.fillStyle = swordColor + '40'; // 40% opacity
             ctx.beginPath();
-            ctx.moveTo(0, -p.length / 2 - 10);
-            ctx.lineTo(3, -p.length / 2);
-            ctx.lineTo(0, -p.length / 2 + 5);
-            ctx.lineTo(-3, -p.length / 2);
+            ctx.moveTo(0, -p.length / 2 - 15);
+            ctx.lineTo(p.width / 2 + 2, -p.length / 2);
+            ctx.lineTo(0, -p.length / 2 + 8);
+            ctx.lineTo(-p.width / 2 - 2, -p.length / 2);
             ctx.closePath();
             ctx.fill();
             
-            // 剑身
-            ctx.fillStyle = p.isGold ? '#FFD700' : '#C0C0FF';
+            // 剑身 - v2.5.0 蓝色
+            ctx.fillStyle = swordColor;
             ctx.beginPath();
+            // 尖头长方形
             ctx.moveTo(0, -p.length / 2);
-            ctx.lineTo(p.width / 2, 0);
+            ctx.lineTo(p.width / 2, -p.length / 4);
+            ctx.lineTo(p.width / 2, p.length / 4);
             ctx.lineTo(0, p.length / 2);
-            ctx.lineTo(-p.width / 2, 0);
+            ctx.lineTo(-p.width / 2, p.length / 4);
+            ctx.lineTo(-p.width / 2, -p.length / 4);
             ctx.closePath();
             ctx.fill();
             
             // 剑柄
-            ctx.fillStyle = p.isGold ? '#B8860B' : '#4169E1';
+            ctx.fillStyle = '#1a365d';
             ctx.fillRect(-p.width / 4, p.length / 4, p.width / 2, p.length / 4);
             
             ctx.restore();
