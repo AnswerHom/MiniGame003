@@ -2075,5 +2075,31 @@ function render() {
     drawGameUI();
 }
 
+// 绘制万剑护体环绕剑阵
+function drawSwordOrbit(player) {
+    const ctx = game.ctx;
+    const orbitRadius = 50;
+    const swordCount = 6;
+    const time = Date.now() / 1000;
+    
+    for (let i = 0; i < swordCount; i++) {
+        const angle = (Math.PI * 2 / swordCount) * i + time * 2;
+        const swordX = player.x + Math.cos(angle) * orbitRadius;
+        const swordY = player.y + Math.sin(angle) * orbitRadius;
+        
+        // 剑光效果
+        ctx.fillStyle = 'rgba(135, 206, 235, 0.6)';
+        ctx.beginPath();
+        ctx.arc(swordX, swordY, 8, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 剑身
+        ctx.fillStyle = '#87CEEB';
+        ctx.beginPath();
+        ctx.arc(swordX, swordY, 5, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
 // 绘制游戏UI
 window.onload = initGame;
