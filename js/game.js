@@ -113,9 +113,9 @@ function initGame() {
     game.worldWidth = game.width * 1.5;
     game.worldHeight = game.height * 1.5;
     
-    // 初始化摄像机
-    game.camera.x = game.width / 2;
-    game.camera.y = game.height / 2;
+    // 初始化摄像机（设置为世界中心）
+    game.camera.x = game.worldWidth / 2;
+    game.camera.y = game.worldHeight / 2;
     game.camera.targetX = game.camera.x;
     game.camera.targetY = game.camera.y;
     game.camera.lastUpdate = performance.now();
@@ -139,7 +139,22 @@ function initGame() {
         TeamManager.save();
         teamMembers = ['李逍遥'];
     }
-    game.team = teamMembers;
+    
+    // 修复：队伍只能包含已拥有的角色
+    const ownedChars = game.gachaState.ownedCharacters;
+    teamMembers = teamMembers.filter(c => ownedChars.includes(c));
+    
+    // 如果过滤后队伍为空，只添加第一个拥有的角色
+    if (teamMembers.length === 0 && ownedChars.length > 0) {
+        teamMembers = [ownedChars[0]];
+    }
+    
+    // 同步到TeamManager
+    TeamManager.init();
+    teamMembers.forEach(c => TeamManager.addMember(c));
+    TeamManager.save();
+    
+    game.team = TeamManager.getMembers();
     
     // 启动游戏循环
     game.lastTime = performance.now();
@@ -174,7 +189,17 @@ function handleClick(e) {
     if (game.state === 'menu') {
         // 点击开始进入大厅
         game.state = 'lobby';
-        // 重置队伍为空，让玩家重新选择
+        // 重置队伍：只保留已拥有的角色
+        const ownedChars = game.gachaState.ownedCharacters;
+        game.team = game.team.filter(c => ownedChars.includes(c));
+        if (game.team.length === 0 && ownedChars.length > 0) {
+            game.team = [ownedChars[0]];
+        }
+        // 同步到TeamManager
+        TeamManager.init();
+        game.team.forEach(c => TeamManager.addMember(c));
+        TeamManager.save();
+        // 清空大厅显示的玩家
         game.players = [];
     } else if (game.state === 'lobby') {
         // 大厅交互
@@ -649,7 +674,7 @@ function drawLobby() {
         const x = teamStartX + i * 120;
         const y = 200;
         const owned = game.gachaState.ownedCharacters.includes(char);
-        const inTeam = game.players.some(p => p.name === char);
+        const inTeam = game.team.includes(char);
         
         // 角色框
         ctx.fillStyle = owned ? getCharacterColor(char) : '#333';
@@ -789,6 +814,7 @@ function selectCharacter(x, y) {
     const charY = 200;
     
     // 检查是否点击了角色头像（选择/取消角色）
+    let teamChanged = false;
     charList.forEach((char, i) => {
         const charX = teamStartX + i * 120;
         // 检查是否点击了角色框
@@ -796,19 +822,30 @@ function selectCharacter(x, y) {
             y >= charY - 30 && y <= charY + 50) {
             // 检查是否已拥有该角色
             if (game.gachaState.ownedCharacters.includes(char)) {
-                const inTeamIndex = game.players.findIndex(p => p.name === char);
-                if (inTeamIndex >= 0) {
+                if (game.team.includes(char)) {
                     // 已在队伍中，移除
-                    game.players.splice(inTeamIndex, 1);
+                    const idx = game.team.indexOf(char);
+                    if (idx > -1) {
+                        game.team.splice(idx, 1);
+                        TeamManager.removeMember(char);
+                        teamChanged = true;
+                    }
                 } else {
                     // 未在队伍中，添加（最多5人）
-                    if (game.players.length < 5) {
-                        game.players.push(createPlayer(char));
+                    if (game.team.length < 5) {
+                        game.team.push(char);
+                        TeamManager.addMember(char);
+                        teamChanged = true;
                     }
                 }
             }
         }
     });
+    
+    // 如果队伍变化，保存并同步
+    if (teamChanged) {
+        TeamManager.save();
+    }
     
     // 检查单抽按钮
     if (x >= game.width / 2 - 200 && x <= game.width / 2 - 40 &&
@@ -1069,6 +1106,7 @@ function gameLoop(timestamp) {
         
         update(deltaTime);
         render();
+        drawGameUI();
     }
     
     requestAnimationFrame(gameLoop);
