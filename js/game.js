@@ -1,25 +1,74 @@
 // ===== 仙剑肉鸽 - 游戏主逻辑 =====
 
+// 地图区域数据
+const MAP_REGIONS = {
+    仙剑岛: {
+        name: '仙剑岛',
+        startWave: 1,
+        endWave: 10,
+        background: '#2d5a3d',
+        decoration: 'flowers',
+        unlocked: true,
+        completed: false
+    },
+    锁妖塔: {
+        name: '锁妖塔',
+        startWave: 11,
+        endWave: 20,
+        background: '#2a2a3a',
+        decoration: 'fire',
+        unlocked: false,
+        completed: false
+    },
+    神木林: {
+        name: '神木林',
+        startWave: 21,
+        endWave: 30,
+        background: '#1a4a3a',
+        decoration: 'fireflies',
+        unlocked: false,
+        completed: false
+    }
+};
+
 // 游戏状态
 const game = {
     canvas: null,
     ctx: null,
     width: 0,
     height: 0,
-    state: 'menu', // menu, lobby, gacha, playing, gameover
+    // 世界地图尺寸（比屏幕大50%）
+    worldWidth: 0,
+    worldHeight: 0,
+    // 摄像机系统
+    camera: {
+        x: 0,
+        y: 0,
+        targetX: 0,
+        targetY: 0,
+        delay: 0.3, // 秒
+        smoothing: 0.1,
+        lastUpdate: 0
+    },
+    // 障碍物
+    obstacles: [],
+    state: 'menu', // menu, lobby, gacha, playing, gameover, victory, map
     wave: 1,
     gold: 0,
     diamond: 200, // 钻石
     time: 0,
     lastTime: 0,
     players: [],
-    team: [], // 队伍配置
+    team: ['李逍遥'], // 队伍配置
     enemies: [],
     projectiles: [],
     effects: [],
+    // 地图系统
+    currentRegion: '仙剑岛',
+    regions: JSON.parse(JSON.stringify(MAP_REGIONS)),
     // 抽卡系统
     gachaState: {
-        ownedCharacters: [], // 已拥有的角色
+        ownedCharacters: ['李逍遥'], // 初始角色
         lastDrawTime: 0,
         drawCount: 0,
         isDrawing: false,
@@ -57,8 +106,36 @@ function initGame() {
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
     
-    // 初始界面
-    drawMenu();
+    // 初始化世界地图尺寸（比屏幕大50%）
+    game.worldWidth = game.width * 1.5;
+    game.worldHeight = game.height * 1.5;
+    
+    // 初始化摄像机
+    game.camera.x = game.width / 2;
+    game.camera.y = game.height / 2;
+    game.camera.targetX = game.camera.x;
+    game.camera.targetY = game.camera.y;
+    game.camera.lastUpdate = performance.now();
+    
+    // v2.6.0 初始化战斗肉鸽系统
+    initBattleRogue();
+    
+    // 生成障碍物
+    generateObstacles();
+    
+    // 初始化队伍系统（v2.3.1）
+    TeamManager.init();  // 先初始化
+    TeamManager.load();  // 再加载保存的数据
+    game.team = TeamManager.getMembers();
+    if (game.team.length === 0) {
+        game.team = ['李逍遥'];
+        TeamManager.addMember('李逍遥');
+        TeamManager.save();
+    }
+    
+    // 启动游戏循环
+    game.lastTime = performance.now();
+    requestAnimationFrame(gameLoop);
     
     // 点击开始游戏
     game.canvas.addEventListener('click', handleClick);
@@ -94,10 +171,65 @@ function handleClick(e) {
     } else if (game.state === 'lobby') {
         // 大厅交互
         selectCharacter(x, y);
+    } else if (game.state === 'gacha') {
+        // 点击返回大厅
+        game.state = 'lobby';
+    } else if (game.state === 'map') {
+        // 地图交互
+        handleMapClick(x, y);
+    } else if (game.state === 'gameover') {
+        // 检查返回大厅按钮
+        if (x >= game.width / 2 - 80 && x <= game.width / 2 + 80 &&
+            y >= game.height / 2 + 100 && y <= game.height / 2 + 150) {
+            game.state = 'lobby';
+        }
+    } else if (game.state === 'victory') {
+        // 检查返回大厅按钮
+        if (x >= game.width / 2 - 80 && x <= game.width / 2 + 80 &&
+            y >= game.height / 2 + 100 && y <= game.height / 2 + 150) {
+            game.state = 'lobby';
+        }
     } else if (game.state === 'playing') {
+        // v2.6.0 战斗肉鸽界面点击
+        if (battleRogueState.active) {
+            handleBattleRogueClick(x, y);
+            return;
+        }
+        
+        // 检查战斗肉鸽按钮点击
+        if (game.battleRogueBtn) {
+            const btn = game.battleRogueBtn;
+            if (x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) {
+                openBattleRogue();
+                return;
+            }
+        }
+        
         // 移动玩家
         movePlayer(x, y);
     }
+}
+
+// 地图点击处理
+function handleMapClick(x, y) {
+    // 检查区域点击
+    Object.keys(game.regions).forEach(regionName => {
+        const r = game.regions[regionName];
+        if (r.uiX && r.unlocked) {
+            if (x >= r.uiX && x <= r.uiX + r.uiW && 
+                y >= r.uiY && y <= r.uiY + r.uiH) {
+                // 切换区域
+                game.currentRegion = regionName;
+                // 从区域起始波次开始
+                game.wave = game.regions[regionName].startWave;
+                // 重置敌人
+                game.enemies = [];
+                game.projectiles = [];
+                game.effects = [];
+                game.state = 'playing';
+            }
+        }
+    });
 }
 
 // 处理键盘
@@ -286,6 +418,193 @@ function drawMenu() {
     ctx.fillText('点击屏幕开始游戏', game.width / 2, game.height / 2 + 30);
 }
 
+// 绘制大地图
+function drawMap() {
+    const ctx = game.ctx;
+    const region = game.regions[game.currentRegion];
+    
+    // 背景
+    ctx.fillStyle = region.background;
+    ctx.fillRect(0, 0, game.width, game.height);
+    
+    // 装饰效果
+    if (region.decoration === 'flowers') {
+        for (let i = 0; i < 20; i++) {
+            const x = (Date.now() / 50 + i * 50) % game.width;
+            const y = (Date.now() / 30 + i * 40) % game.height;
+            ctx.fillStyle = 'rgba(255, 182, 193, 0.5)';
+            ctx.beginPath();
+            ctx.arc(x, y, 3, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    } else if (region.decoration === 'fire') {
+        for (let i = 0; i < 15; i++) {
+            const x = Math.sin(Date.now() / 1000 + i) * 100 + game.width / 2;
+            const y = Math.cos(Date.now() / 800 + i * 2) * 50 + game.height / 2 + 100;
+            ctx.fillStyle = 'rgba(255, 200, 100, 0.8)';
+            ctx.beginPath();
+            ctx.arc(x, y, 2 + Math.sin(Date.now() / 200 + i) * 1, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    } else if (region.decoration === 'fireflies') {
+        for (let i = 0; i < 25; i++) {
+            const x = (Math.sin(Date.now() / 800 + i * 0.5) * 200 + game.width / 2);
+            const y = (Math.cos(Date.now() / 600 + i * 0.7) * 150 + game.height / 2);
+            ctx.fillStyle = `rgba(100, 255, 100, ${0.3 + Math.sin(Date.now() / 300 + i) * 0.3})`;
+            ctx.beginPath();
+            ctx.arc(x, y, 2 + Math.sin(Date.now() / 200 + i) * 1, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+    
+    // 标题
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 36px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText('选择区域', game.width / 2, 60);
+    
+    // 绘制区域卡片
+    const regions = Object.keys(game.regions);
+    const cardWidth = 200;
+    const cardHeight = 250;
+    const startX = game.width / 2 - (regions.length * cardWidth + (regions.length - 1) * 30) / 2;
+    const cardY = game.height / 2 - cardHeight / 2;
+    
+    regions.forEach((regionName, i) => {
+        const x = startX + i * (cardWidth + 30);
+        const r = game.regions[regionName];
+        
+        // 卡片背景
+        ctx.fillStyle = r.unlocked ? '#3d3d5c' : '#2d2d3c';
+        ctx.fillRect(x, cardY, cardWidth, cardHeight);
+        
+        // 边框
+        ctx.strokeStyle = r.unlocked ? '#ffd700' : '#555';
+        ctx.lineWidth = game.currentRegion === regionName ? 4 : 2;
+        ctx.strokeRect(x, cardY, cardWidth, cardHeight);
+        
+        // 区域名
+        ctx.fillStyle = r.unlocked ? '#ffd700' : '#888';
+        ctx.font = 'bold 24px Microsoft YaHei';
+        ctx.fillText(r.name, x + cardWidth / 2, cardY + 40);
+        
+        // 波次范围
+        ctx.fillStyle = '#aaa';
+        ctx.font = '16px Microsoft YaHei';
+        ctx.fillText(r.startWave + '-' + r.endWave + '波', x + cardWidth / 2, cardY + 80);
+        
+        // 状态
+        if (r.completed) {
+            ctx.fillStyle = '#44ff44';
+            ctx.font = '18px Microsoft YaHei';
+            ctx.fillText('✓ 已通关', x + cardWidth / 2, cardY + 120);
+        } else if (!r.unlocked) {
+            ctx.fillStyle = '#888';
+            ctx.font = '18px Microsoft YaHei';
+            ctx.fillText('🔒 未解锁', x + cardWidth / 2, cardY + 120);
+        } else {
+            ctx.fillStyle = '#4a90d9';
+            ctx.font = '18px Microsoft YaHei';
+            ctx.fillText('进行中', x + cardWidth / 2, cardY + 120);
+        }
+        
+        // 难度星星
+        let stars = '';
+        if (r.endWave <= 10) stars = '⭐';
+        else if (r.endWave <= 20) stars = '⭐⭐';
+        else stars = '⭐⭐⭐';
+        ctx.fillStyle = '#ffd700';
+        ctx.font = '20px Microsoft YaHei';
+        ctx.fillText(stars, x + cardWidth / 2, cardY + 160);
+        
+        // 进入按钮
+        if (r.unlocked) {
+            ctx.fillStyle = r.completed ? '#44aa44' : '#4a90d9';
+            ctx.fillRect(x + 30, cardY + 180, cardWidth - 60, 40);
+            ctx.fillStyle = '#fff';
+            ctx.font = '18px Microsoft YaHei';
+            ctx.fillText(r.completed ? '重复挑战' : '进入', x + cardWidth / 2, cardY + 207);
+        }
+        
+        // 存储位置
+        r.uiX = x;
+        r.uiY = cardY;
+        r.uiW = cardWidth;
+        r.uiH = cardHeight;
+    });
+    
+    // 小地图（右上角）
+    drawMiniMap();
+}
+
+// 绘制小地图
+// 绘制障碍物
+function drawObstacles() {
+    const ctx = game.ctx;
+    
+    game.obstacles.forEach(obs => {
+        if (obs.type === 'rock') {
+            // 岩石 - 灰色不规则形状
+            ctx.fillStyle = '#4a4a4a';
+            ctx.beginPath();
+            ctx.arc(obs.x, obs.y, obs.size, 0, Math.PI * 2);
+            ctx.fill();
+            // 阴影
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.beginPath();
+            ctx.arc(obs.x + 3, obs.y + 3, obs.size * 0.8, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (obs.type === 'tree') {
+            // 树木 - 棕色树干 + 绿色树冠
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(obs.x - 5, obs.y, 10, obs.size);
+            ctx.fillStyle = '#228B22';
+            ctx.beginPath();
+            ctx.arc(obs.x, obs.y - obs.size * 0.3, obs.size * 0.8, 0, Math.PI * 2);
+            ctx.fill();
+        } else if (obs.type === 'flower') {
+            // 花丛 - 装饰物
+            ctx.fillStyle = 'rgba(255, 182, 193, 0.5)';
+            for (let i = 0; i < 5; i++) {
+                const angle = (Math.PI * 2 / 5) * i;
+                const x = obs.x + Math.cos(angle) * obs.size * 0.5;
+                const y = obs.y + Math.sin(angle) * obs.size * 0.5;
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+    });
+}
+
+function drawMiniMap() {
+    const ctx = game.ctx;
+    const mapSize = 80;
+    const mapX = game.width - mapSize - 20;
+    const mapY = 60;
+    
+    // 背景
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    ctx.fillRect(mapX, mapY, mapSize, mapSize);
+    
+    // 区域颜色
+    const region = game.regions[game.currentRegion];
+    ctx.fillStyle = region.background;
+    ctx.fillRect(mapX + 5, mapY + 5, mapSize - 10, mapSize - 10);
+    
+    // 当前区域标记
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath();
+    ctx.arc(mapX + mapSize / 2, mapY + mapSize / 2, 6, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // 区域名
+    ctx.fillStyle = '#fff';
+    ctx.font = '10px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText(region.name, mapX + mapSize / 2, mapY + mapSize + 12);
+}
+
 // 绘制大厅
 function drawLobby() {
     const ctx = game.ctx;
@@ -296,7 +615,7 @@ function drawLobby() {
     ctx.fillStyle = COLORS.ui.gold;
     ctx.font = 'bold 48px Microsoft YaHei';
     ctx.textAlign = 'center';
-    ctx.fillText('仙剑肉鸽', game.width / 2, 80);
+    ctx.fillText('游戏大厅', game.width / 2, 80);
     
     // 顶部资源显示
     ctx.fillStyle = '#87ceeb';
@@ -312,15 +631,15 @@ function drawLobby() {
     // 队伍显示
     ctx.fillStyle = '#fff';
     ctx.font = '18px Microsoft YaHei';
-    ctx.fillText('当前队伍 (' + game.players.length + '/5)', game.width / 2, 130);
+    ctx.fillText('当前队伍 (' + game.team.length + '/5)', game.width / 2, 140);
     
-    // 绘制已拥有角色
+    // 绘制已拥有角色（可点击选择）
     const charList = ['李逍遥', '赵灵儿', '阿奴'];
     const teamStartX = game.width / 2 - 120;
     
     charList.forEach((char, i) => {
         const x = teamStartX + i * 120;
-        const y = 170;
+        const y = 200;
         const owned = game.gachaState.ownedCharacters.includes(char);
         const inTeam = game.players.some(p => p.name === char);
         
@@ -339,6 +658,17 @@ function drawLobby() {
             ctx.fillStyle = '#fff';
             ctx.font = '14px Microsoft YaHei';
             ctx.fillText(char, x, y + 65);
+            
+            // 选中标记
+            if (selected) {
+                ctx.fillStyle = '#44ff44';
+                ctx.beginPath();
+                ctx.arc(x + 35, y - 20, 10, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#fff';
+                ctx.font = '12px Microsoft YaHei';
+                ctx.fillText('✓', x + 35, y - 16);
+            }
         } else {
             ctx.fillStyle = '#666';
             ctx.font = '12px Microsoft YaHei';
@@ -346,45 +676,28 @@ function drawLobby() {
         }
     });
     
-    // 抽卡区域标题
+    // 抽卡按钮
+    ctx.fillStyle = game.diamond >= 180 ? '#4a5568' : '#333';
+    ctx.fillRect(game.width / 2 - 80, game.height - 160, 160, 50);
     ctx.fillStyle = '#fff';
     ctx.font = '20px Microsoft YaHei';
-    ctx.fillText('抽卡区域', game.width / 2, 300);
+    ctx.fillText('抽卡', game.width / 2, game.height - 125);
     
-    // 绘制抽卡按钮
-    // 单抽按钮
-    ctx.fillStyle = game.diamond >= 20 ? '#4a5568' : '#333';
-    ctx.fillRect(game.width / 2 - 200, game.height - 160, 160, 50);
+    // 开始战斗按钮
+    if (game.team.length > 0) {
+        ctx.fillStyle = COLORS.ui.gold;
+        ctx.fillRect(game.width / 2 - 80, game.height - 80, 160, 50);
+        ctx.fillStyle = '#000';
+        ctx.font = '24px Microsoft YaHei';
+        ctx.fillText('开始战斗', game.width / 2, game.height - 47);
+    }
+    
+    // 大地图按钮
+    ctx.fillStyle = '#4a5568';
+    ctx.fillRect(game.width - 120, game.height - 60, 100, 40);
     ctx.fillStyle = '#fff';
     ctx.font = '18px Microsoft YaHei';
-    ctx.fillText('单抽 20💎', game.width / 2 - 120, game.height - 125);
-    
-    // 十连抽按钮
-    ctx.fillStyle = game.diamond >= 180 ? '#4a5568' : '#333';
-    ctx.fillRect(game.width / 2 + 40, game.height - 160, 160, 50);
-    ctx.fillStyle = '#fff';
-    ctx.fillText('十连 180💎', game.width / 2 + 120, game.height - 125);
-    
-    // 金币兑换钻石按钮
-    ctx.fillStyle = game.gold >= 100 ? '#4a5568' : '#333';
-    ctx.fillRect(game.width / 2 - 80, game.height - 100, 160, 35);
-    ctx.fillStyle = '#fff';
-    ctx.font = '14px Microsoft YaHei';
-    ctx.fillText('100💰 → 10💎', game.width / 2, game.height - 75);
-    
-    // 开始游戏按钮
-    if (game.players.length > 0) {
-        ctx.fillStyle = COLORS.ui.gold;
-        ctx.fillRect(game.width / 2 - 80, game.height - 50, 160, 35);
-        ctx.fillStyle = '#000';
-        ctx.font = '16px Microsoft YaHei';
-        ctx.fillText('开始游戏', game.width / 2, game.height - 27);
-    }
-    
-    // 抽卡结果展示
-    if (game.gachaState.drawnCards.length > 0) {
-        drawGachaResults();
-    }
+    ctx.fillText('大地图', game.width - 70, game.height - 33);
 }
 
 // 获取角色颜色
@@ -458,14 +771,15 @@ function drawGachaResults() {
     }
 }
 
-// 选择角色/抽卡
+// 大厅交互
 function selectCharacter(x, y) {
-    const ctx = game.ctx;
+    // 检查角色点击（选择队伍）
+    const charList = ['李逍遥', '赵灵儿', '阿奴'];
+    const teamStartX = game.width / 2 - 120;
+    const charY = 200;
     
     // 检查是否点击了角色头像（选择/取消角色）
     const charList = ['李逍遥', '赵灵儿', '阿奴'];
-    const teamStartX = game.width / 2 - 120;
-    const charY = 170;
     
     charList.forEach((char, i) => {
         const charX = teamStartX + i * 120;
@@ -497,46 +811,70 @@ function selectCharacter(x, y) {
         return;
     }
     
-    // 检查十连抽按钮
-    if (x >= game.width / 2 + 40 && x <= game.width / 2 + 200 &&
+    // 检查抽卡按钮
+    if (x >= game.width / 2 - 80 && x <= game.width / 2 + 80 &&
         y >= game.height - 160 && y <= game.height - 110) {
         if (game.diamond >= 180) {
+            game.state = 'gacha';
             drawGacha(10);
         }
         return;
     }
     
-    // 检查金币兑换按钮
-    if (x >= game.width / 2 - 80 && x <= game.width / 2 + 80 &&
-        y >= game.height - 100 && y <= game.height - 65) {
-        if (game.gold >= 100) {
-            game.gold -= 100;
-            game.diamond += 10;
-        }
-        return;
+    // 检查开始战斗按钮
+    if (game.team.length > 0 &&
+        x >= game.width / 2 - 80 && x <= game.width / 2 + 80 &&
+        y >= game.height - 80 && y <= game.height - 30) {
+        startGame();
     }
     
-    // 检查开始游戏按钮
-    if (game.players.length > 0 &&
-        x >= game.width / 2 - 80 && x <= game.width / 2 + 80 &&
-        y >= game.height - 50 && y <= game.height - 15) {
-        game.state = 'playing';
-        game.wave = 1;
-        game.time = 0;
-        
-        // 初始化波次系统
-        game.waveState = 'countdown';
-        game.waveTimer = 15;
-        game.waveCountdown = 3;
-        game.waveEnemiesRemaining = 0;
-        game.waveEnemiesSpawned = 0;
-        game.waveSpawnTimer = 0;
-        game.enemiesToSpawn = 0;
-        
-        // 开始游戏循环
-        game.lastTime = performance.now();
-        requestAnimationFrame(gameLoop);
+    // 检查大地图按钮
+    if (x >= game.width - 120 && x <= game.width - 20 &&
+        y >= game.height - 60 && y <= game.height - 20) {
+        game.state = 'map';
     }
+}
+
+// 开始战斗
+function startGame() {
+    // 根据队伍创建玩家（v2.3.1 确保使用最新队伍数据）
+    game.players = [];
+    const currentTeam = TeamManager.getMembers();
+    currentTeam.forEach(charName => {
+        game.players.push(createPlayer(charName));
+    });
+    
+    // 同时更新 game.team 保持一致
+    game.team = currentTeam;
+    
+    // 重置摄像机到世界中心
+    game.camera.x = game.worldWidth / 2;
+    game.camera.y = game.worldHeight / 2;
+    game.camera.targetX = game.camera.x;
+    game.camera.targetY = game.camera.y;
+    
+    game.state = 'playing';
+    game.wave = 1;
+    game.time = 0;
+    game.enemies = [];
+    game.projectiles = [];
+    game.effects = [];
+    game.gold = 0;
+    
+    // v2.3.1 队伍系统 - 设置战斗状态
+    TeamManager.setInBattle(true);
+    
+    // 初始化波次系统
+    game.waveState = 'countdown';
+    game.waveTimer = 15;
+    game.waveCountdown = 3;
+    game.waveEnemiesRemaining = 0;
+    game.waveEnemiesSpawned = 0;
+    game.waveSpawnTimer = 0;
+    game.enemiesToSpawn = 0;
+    
+    // 开始游戏循环
+    game.lastTime = performance.now();
 }
 
 // 抽卡函数
@@ -622,10 +960,22 @@ function addCardToInventory(cardName) {
     game.gachaState.cardInventory[cardName]++;
 }
 
+// 角色颜色配置（v2.5.0）
+const PLAYER_COLORS = {
+    '李逍遥': '#3182ce',  // 蓝色
+    '赵灵儿': '#d53f8c',  // 粉色
+    '阿奴': '#38b2ac'      // 青色
+};
+
 // 创建玩家
 function createPlayer(characterName) {
     const char = CHARACTERS[characterName];
-    return {
+    // v2.5.0 角色颜色
+    const playerColor = PLAYER_COLORS[characterName] || '#3182ce';
+    // v2.5.0 显示姓氏
+    const surname = characterName.charAt(0);
+    
+    const player = {
         name: char.name,
         role: char.role,
         hp: char.hp,
@@ -636,23 +986,50 @@ function createPlayer(characterName) {
         attackRange: char.attackRange,
         critRate: char.critRate,
         critDamage: char.critDamage,
-        x: game.width / 2,
-        y: game.height / 2,
-        targetX: game.width / 2,
-        targetY: game.height / 2,
+        x: game.worldWidth / 2,
+        y: game.worldHeight / 2,
+        targetX: game.worldWidth / 2,
+        targetY: game.worldHeight / 2,
+        size: 20,
+        color: playerColor,  // v2.5.0 角色颜色
+        displayText: surname,  // v2.5.0 显示姓氏
         skills: char.skills,
         skillCooldowns: {},
         lastAttack: 0,
         alive: true,
-        shield: 0
+        shield: 0,
+        // 受伤方法
+        takeDamage: function(damage) {
+            let actualDamage = damage;
+            // 护盾吸收
+            if (this.shield > 0) {
+                if (this.shield >= actualDamage) {
+                    this.shield -= actualDamage;
+                    actualDamage = 0;
+                } else {
+                    actualDamage -= this.shield;
+                    this.shield = 0;
+                }
+            }
+            // 扣血
+            this.hp -= actualDamage;
+            if (this.hp <= 0) {
+                this.hp = 0;
+                this.alive = false;
+            }
+        }
     };
+    return player;
 }
 
 // 移动玩家
 function movePlayer(x, y) {
     if (game.players.length > 0 && game.players[0].alive) {
-        game.players[0].targetX = x;
-        game.players[0].targetY = y;
+        // 转换屏幕坐标到世界坐标
+        const worldX = x + game.camera.x - game.width / 2;
+        const worldY = y + game.camera.y - game.height / 2;
+        game.players[0].targetX = worldX;
+        game.players[0].targetY = worldY;
     }
 }
 
@@ -663,6 +1040,16 @@ function gameLoop(timestamp) {
         drawMenu();
     } else if (game.state === 'lobby') {
         drawLobby();
+    } else if (game.state === 'gacha') {
+        drawGachaResults();
+    } else if (game.state === 'map') {
+        drawMap();
+    } else if (game.state === 'gameover') {
+        render();
+        drawGameOver();
+    } else if (game.state === 'victory') {
+        render();
+        drawVictory();
     } else if (game.state === 'playing') {
         const deltaTime = (timestamp - game.lastTime) / 1000;
         game.lastTime = timestamp;
@@ -676,7 +1063,29 @@ function gameLoop(timestamp) {
 }
 
 // 更新游戏状态
+// 更新摄像机跟随
+function updateCamera(dt) {
+    // 找到主导角色（第一个存活的玩家）
+    const leader = game.players.find(p => p.alive);
+    if (!leader) return;
+    
+    // 延迟更新目标位置
+    game.camera.targetX = leader.x;
+    game.camera.targetY = leader.y;
+    
+    // 平滑跟随
+    game.camera.x += (game.camera.targetX - game.camera.x) * game.camera.smoothing;
+    game.camera.y += (game.camera.targetY - game.camera.y) * game.camera.smoothing;
+    
+    // 边界处理
+    game.camera.x = Math.max(game.width / 2, Math.min(game.worldWidth - game.width / 2, game.camera.x));
+    game.camera.y = Math.max(game.height / 2, Math.min(game.worldHeight - game.height / 2, game.camera.y));
+}
+
 function update(dt) {
+    // 更新摄像机跟随
+    updateCamera(dt);
+    
     // 更新玩家
     game.players.forEach(player => {
         if (!player.alive) return;
@@ -727,6 +1136,16 @@ function update(dt) {
             player.y += (dy / dist) * player.moveSpeed * dt;
         }
         
+        // 障碍物碰撞
+        const obs = checkObstacleCollision(player.x, player.y, player.size);
+        if (obs) {
+            resolveObstacleCollision(player, obs);
+        }
+        
+        // 世界边界限制
+        player.x = Math.max(player.size, Math.min(game.worldWidth - player.size, player.x));
+        player.y = Math.max(player.size, Math.min(game.worldHeight - player.size, player.y));
+        
         // 自动攻击
         player.lastAttack += dt;
         const attackInterval = 1 / player.attackSpeed;
@@ -739,6 +1158,22 @@ function update(dt) {
             }
         }
     });
+    
+    // v2.3.1 队伍系统 - 队伍跟随更新
+    if (game.players.length > 1 && game.state === 'playing') {
+        const leader = game.players.find(p => p.alive);
+        if (leader) {
+            TeamManager.updateTeamFollow(leader);
+        }
+    }
+    
+    // 检查游戏结束（全部玩家阵亡）
+    const alivePlayers = game.players.filter(p => p.alive);
+    if (alivePlayers.length === 0 && game.state === 'playing') {
+        // v2.3.1 队伍系统 - 离开战斗状态
+        TeamManager.setInBattle(false);
+        game.state = 'gameover';
+    }
     
     // 更新敌人
     game.enemies.forEach(enemy => {
@@ -774,6 +1209,12 @@ function update(dt) {
             if (dist > enemy.attackRange) {
                 enemy.x += (dx / dist) * currentSpeed * dt;
                 enemy.y += (dy / dist) * currentSpeed * dt;
+                
+                // 障碍物碰撞
+                const obs = checkObstacleCollision(enemy.x, enemy.y, enemy.size);
+                if (obs) {
+                    resolveObstacleCollision(enemy, obs);
+                }
             } else {
                 // 攻击
                 enemy.lastAttack += dt;
@@ -783,6 +1224,10 @@ function update(dt) {
                 }
             }
         }
+        
+        // 世界边界限制
+        enemy.x = Math.max(enemy.size, Math.min(game.worldWidth - enemy.size, enemy.x));
+        enemy.y = Math.max(enemy.size, Math.min(game.worldHeight - enemy.size, enemy.y));
     });
     
     // 更新投射物
@@ -790,6 +1235,13 @@ function update(dt) {
         p.x += p.vx * dt;
         p.y += p.vy * dt;
         p.life -= dt;
+        
+        // v2.7.0 子弹可被障碍物阻挡
+        const hitObstacle = checkObstacleCollision(p.x, p.y, 5);
+        if (hitObstacle) {
+            p.life = 0;
+            return false;
+        }
         
         // 碰撞检测
         game.enemies.forEach(enemy => {
@@ -877,17 +1329,26 @@ function updateWaveSystem(dt) {
     }
 }
 
-// 开始波次
+// 开始波次（v2.3.2 & v2.3.3 更新）
 function startWave() {
-    // 计算本波怪物数量和属性
-    const baseCount = 5;
-    const enemyCount = baseCount + game.wave - 1;
-    const attributeMultiplier = 1 + (game.wave - 1) * 0.1;
+    // v2.3.3: 12波/BOSS战，第12波为BOSS战
+    if (game.wave === 12) {
+        game.effects.push({
+            type: 'waveStart',
+            wave: game.wave,
+            life: 3,
+            isBoss: true
+        });
+    }
     
-    game.enemiesToSpawn = enemyCount;
-    game.waveEnemiesSpawned = 0;
+    // 使用EnemySpawner生成波次
+    EnemySpawner.spawnWave(game.wave);
+    
+    game.enemiesToSpawn = game.enemies.length;
+    game.waveEnemiesSpawned = game.enemies.length;
+    game.waveEnemiesRemaining = game.enemies.length;
     game.waveSpawnTimer = 0;
-    game.waveState = 'spawning';
+    game.waveState = 'playing';
     
     // 添加波次开始特效
     game.effects.push({
@@ -908,26 +1369,26 @@ function spawnWaveEnemy() {
     const isElite = (game.wave >= 3) && ((game.wave - 3) % 3 === 0) && 
                     (game.waveEnemiesSpawned === 0);
     
-    // 生成位置：屏幕边缘
+    // 生成位置：世界地图边缘
     const side = Math.floor(Math.random() * 4);
     let x, y;
     const buffer = 100;
     
     switch (side) {
         case 0: // 上
-            x = Math.random() * game.width;
+            x = Math.random() * game.worldWidth;
             y = -buffer;
             break;
         case 1: // 下
-            x = Math.random() * game.width;
-            y = game.height + buffer;
+            x = Math.random() * game.worldWidth;
+            y = game.worldHeight + buffer;
             break;
         case 2: // 左
             x = -buffer;
-            y = Math.random() * game.height;
+            y = Math.random() * game.worldHeight;
             break;
         case 3: // 右
-            x = game.width + buffer;
+            x = game.worldWidth + buffer;
             y = Math.random() * game.height;
             break;
     }
@@ -975,8 +1436,16 @@ function spawnWaveEnemy() {
     game.waveEnemiesSpawned++;
 }
 
-// 完成波次
+// 完成波次（v2.3.3 更新：12波/BOSS战）
 function completeWave() {
+    // v2.3.3: 第12波为BOSS战，完成第12波意味着通关
+    if (game.wave >= 12) {
+        // 通关！
+        game.state = 'victory';
+        TeamManager.setInBattle(false);
+        return;
+    }
+    
     // 发放金币奖励
     game.gold += 100;
     
@@ -986,6 +1455,20 @@ function completeWave() {
         wave: game.wave,
         life: 2
     });
+    
+    // 检查是否完成当前区域
+    const region = game.regions[game.currentRegion];
+    if (game.wave >= region.endWave) {
+        region.completed = true;
+        
+        // 解锁下一个区域
+        const regionNames = Object.keys(game.regions);
+        const currentIndex = regionNames.indexOf(game.currentRegion);
+        if (currentIndex < regionNames.length - 1) {
+            const nextRegion = regionNames[currentIndex + 1];
+            game.regions[nextRegion].unlocked = true;
+        }
+    }
     
     // 进入下一波
     game.wave++;
@@ -1067,6 +1550,97 @@ function enemyAttack(enemy, target) {
 }
 
 // 渲染特效
+// 绘制地面纹理
+function drawGroundTexture() {
+    const ctx = game.ctx;
+    
+    // 简化的纹理效果
+    for (let i = 0; i < 50; i++) {
+        const x = (i * 73) % game.width;
+        const y = (i * 47) % game.height;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+        ctx.beginPath();
+        ctx.arc(x, y, 20 + (i % 10), 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+// 绘制边界
+function drawBoundaries() {
+    const ctx = game.ctx;
+    const edgeWidth = 60;
+    
+    // 边界渐变效果（仙雾）
+    const gradient = ctx.createLinearGradient(0, 0, edgeWidth, 0);
+    gradient.addColorStop(0, 'rgba(200, 200, 200, 0.8)');
+    gradient.addColorStop(1, 'rgba(200, 200, 200, 0)');
+    
+    // 左侧边界
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, edgeWidth, game.height);
+    
+    // 右侧边界
+    const gradient2 = ctx.createLinearGradient(game.width - edgeWidth, 0, game.width, 0);
+    gradient2.addColorStop(0, 'rgba(200, 200, 200, 0)');
+    gradient2.addColorStop(1, 'rgba(200, 200, 200, 0.8)');
+    ctx.fillStyle = gradient2;
+    ctx.fillRect(game.width - edgeWidth, 0, edgeWidth, game.height);
+    
+    // 顶部边界
+    const gradient3 = ctx.createLinearGradient(0, 0, 0, edgeWidth);
+    gradient3.addColorStop(0, 'rgba(200, 200, 200, 0.8)');
+    gradient3.addColorStop(1, 'rgba(200, 200, 200, 0)');
+    ctx.fillStyle = gradient3;
+    ctx.fillRect(0, 0, game.width, edgeWidth);
+    
+    // 底部边界
+    const gradient4 = ctx.createLinearGradient(0, game.height - edgeWidth, 0, game.height);
+    gradient4.addColorStop(0, 'rgba(200, 200, 200, 0)');
+    gradient4.addColorStop(1, 'rgba(200, 200, 200, 0.8)');
+    ctx.fillStyle = gradient4;
+    ctx.fillRect(0, game.height - edgeWidth, game.width, edgeWidth);
+}
+
+// 绘制战斗区域边框
+function drawBattleArea() {
+    const ctx = game.ctx;
+    
+    // 战斗区域（圆形）
+    const centerX = game.width / 2;
+    const centerY = game.height / 2;
+    const radius = Math.min(game.width, game.height) * 0.4;
+    
+    // 外圈淡金色边框
+    ctx.strokeStyle = 'rgba(218, 165, 32, 0.3)';
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // 内圈边框
+    ctx.strokeStyle = 'rgba(218, 165, 32, 0.5)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius - 10, 0, Math.PI * 2);
+    ctx.stroke();
+}
+
+// 绘制战斗装饰
+function drawBattleDecorations() {
+    const ctx = game.ctx;
+    const time = Date.now();
+    
+    // 飘落花瓣
+    for (let i = 0; i < 15; i++) {
+        const x = (time / 30 + i * 60) % game.width;
+        const y = (time / 20 + i * 40) % game.height;
+        ctx.fillStyle = 'rgba(255, 182, 193, 0.4)';
+        ctx.beginPath();
+        ctx.arc(x, y, 2, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
 function renderEffects() {
     const ctx = game.ctx;
     
@@ -1150,10 +1724,11 @@ function renderEffects() {
                 ctx.restore();
                 break;
             case 'waveStart':
-                ctx.fillStyle = `rgba(255, 68, 68, ${effect.life})`;
+                ctx.fillStyle = effect.isBoss ? `rgba(255, 0, 0, ${effect.life})` : `rgba(255, 68, 68, ${effect.life})`;
                 ctx.font = 'bold 32px Microsoft YaHei';
                 ctx.textAlign = 'center';
-                ctx.fillText('第 ' + effect.wave + ' 波 开始！', game.width / 2, game.height / 2);
+                const startWaveText = effect.wave === 12 ? '⚠️ BOSS战 ⚠️' : ('第 ' + effect.wave + ' 波 开始！');
+                ctx.fillText(startWaveText, game.width / 2, game.height / 2);
                 break;
             case 'waveComplete':
                 ctx.fillStyle = `rgba(255, 215, 0, ${effect.life})`;
@@ -1168,21 +1743,108 @@ function renderEffects() {
 }
 
 // 渲染
+// 生成障碍物
+function generateObstacles() {
+    game.obstacles = [];
+    const count = 30; // 障碍物数量
+    
+    for (let i = 0; i < count; i++) {
+        const type = Math.random() < 0.4 ? 'rock' : (Math.random() < 0.6 ? 'tree' : 'flower');
+        const size = type === 'rock' ? 30 + Math.random() * 20 : 
+                     (type === 'tree' ? 25 + Math.random() * 15 : 20);
+        
+        game.obstacles.push({
+            x: size + Math.random() * (game.worldWidth - size * 2),
+            y: size + Math.random() * (game.worldHeight - size * 2),
+            size: size,
+            type: type
+        });
+    }
+}
+
+// 检查障碍物碰撞
+function checkObstacleCollision(x, y, radius) {
+    for (const obs of game.obstacles) {
+        if (obs.type === 'flower') continue; // 花丛可穿过
+        
+        const dx = x - obs.x;
+        const dy = y - obs.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist < obs.size + radius) {
+            return obs;
+        }
+    }
+    return null;
+}
+
+// 处理障碍物碰撞（推开）
+function resolveObstacleCollision(entity, obstacle) {
+    const dx = entity.x - obstacle.x;
+    const dy = entity.y - obstacle.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    if (dist === 0) return;
+    
+    // 推开到障碍物边缘
+    const pushDist = obstacle.size + entity.size - dist;
+    entity.x += (dx / dist) * pushDist;
+    entity.y += (dy / dist) * pushDist;
+}
+
 function render() {
     const ctx = game.ctx;
     
-    // 背景
-    ctx.fillStyle = COLORS.background;
-    ctx.fillRect(0, 0, game.width, game.height);
+    // 应用摄像机偏移
+    const cameraOffsetX = game.width / 2 - game.camera.x;
+    const cameraOffsetY = game.height / 2 - game.camera.y;
+    ctx.save();
+    ctx.translate(cameraOffsetX, cameraOffsetY);
     
-    // 绘制敌人
+    // 根据区域绘制背景
+    const region = game.regions[game.currentRegion];
+    
+    // 基础背景色
+    ctx.fillStyle = region.background;
+    ctx.fillRect(0, 0, game.worldWidth, game.worldHeight);
+    
+    // 绘制地面纹理（简化版）
+    drawGroundTexture();
+    
+    // 绘制边界
+    drawBoundaries();
+    
+    // 绘制战斗区域边框
+    drawBattleArea();
+    
+    // 绘制障碍物
+    drawObstacles();
+    
+    // 绘制装饰
+    drawBattleDecorations();
+    
+    // 绘制敌人（v2.4.0 怪物美术与体型设计）
     game.enemies.forEach(enemy => {
+        // v2.4.0 BOSS光效环绕
+        if (enemy.isBoss && enemy.hasAura) {
+            ctx.save();
+            ctx.translate(enemy.x, enemy.y);
+            ctx.rotate(game.time * 2); // 旋转光环
+            ctx.strokeStyle = '#ffd700';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([10, 5]);
+            ctx.beginPath();
+            ctx.arc(0, 0, enemy.size + 10, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.restore();
+        }
+        
         // 精英怪光环效果
         if (enemy.isElite) {
             ctx.strokeStyle = 'rgba(148, 0, 211, 0.3)';
             ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.arc(enemy.x, enemy.y, enemy.auraRange, 0, Math.PI * 2);
+            ctx.arc(enemy.x, enemy.y, enemy.auraRange || 50, 0, Math.PI * 2);
             ctx.stroke();
         }
         
@@ -1191,6 +1853,15 @@ function render() {
         ctx.beginPath();
         ctx.arc(enemy.x, enemy.y, enemy.size, 0, Math.PI * 2);
         ctx.fill();
+        
+        // v2.4.0 怪物显示文字
+        if (enemy.displayText) {
+            ctx.fillStyle = '#fff';
+            ctx.font = `bold ${Math.max(10, enemy.size * 0.8)}px Microsoft YaHei`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(enemy.displayText, enemy.x, enemy.y);
+        }
         
         // 血条
         const hpPercent = enemy.hp / enemy.maxHp;
@@ -1201,11 +1872,13 @@ function render() {
         ctx.fillRect(enemy.x - enemy.size, enemy.y - enemy.size - 8, barWidth * hpPercent, 4);
     });
     
-    // 绘制玩家
+    // 绘制玩家（v2.5.0 主角形象）
     game.players.forEach(player => {
         if (!player.alive) return;
         
         const hpPercent = player.hp / player.maxHp;
+        // v2.5.0 角色颜色
+        const playerColor = player.color || '#3182ce';
         
         // 血量环 - 根据血量百分比显示不同颜色
         let hpColor;
@@ -1231,16 +1904,26 @@ function render() {
         ctx.arc(player.x, player.y, 23, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * hpPercent);
         ctx.stroke();
         
-        // 玩家圆形（头像）
-        ctx.fillStyle = COLORS.ui.primary;
+        // 玩家圆形（头像）- v2.5.0 使用角色颜色
+        ctx.fillStyle = playerColor;
         ctx.beginPath();
         ctx.arc(player.x, player.y, 15, 0, Math.PI * 2);
         ctx.fill();
+        
+        // v2.5.0 显示姓氏
+        if (player.displayText) {
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 14px Microsoft YaHei';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(player.displayText, player.x, player.y);
+        }
         
         // 玩家名称
         ctx.fillStyle = '#fff';
         ctx.font = '12px Microsoft YaHei';
         ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
         ctx.fillText(player.name, player.x, player.y - 35);
         
         // 护盾显示
@@ -1273,7 +1956,7 @@ function render() {
             ctx.fill();
         }
         
-        // 根据投射物类型设置颜色
+        // 根据投射物类型绘制不同外观
         if (p.type === 'ice') {
             // 冰锥 - 蓝色
             ctx.fillStyle = p.isCrit ? '#9400D3' : '#00BFFF';
@@ -1285,16 +1968,40 @@ function render() {
             ctx.beginPath();
             ctx.arc(p.x, p.y, 10, 0, Math.PI * 2);
             ctx.fill();
-        } else if (p.type === 'sword') {
-            // 李逍遥 - 剑形投射物（方形）
+        } else if (p.isSword || p.type === 'sword') {
+            // 飞剑 - 李逍遥技能（v2.5.0 剑形发射物）
             ctx.save();
             ctx.translate(p.x, p.y);
-            ctx.rotate(p.angle);
-            ctx.fillStyle = p.isCrit ? COLORS.ui.gold : '#87CEEB';
-            ctx.fillRect(-8, -3, 16, 6);
-            // 剑光效果
-            ctx.fillStyle = p.isCrit ? 'rgba(255, 215, 0, 0.5)' : 'rgba(135, 206, 235, 0.5)';
-            ctx.fillRect(-10, -4, 20, 8);
+            ctx.rotate(Math.atan2(p.vy, p.vx) + Math.PI / 2);
+            
+            // v2.5.0 淡蓝色拖尾
+            const swordColor = p.swordColor || '#3182ce';
+            ctx.fillStyle = swordColor + '40'; // 40% opacity
+            ctx.beginPath();
+            ctx.moveTo(0, -p.length / 2 - 15);
+            ctx.lineTo(p.width / 2 + 2, -p.length / 2);
+            ctx.lineTo(0, -p.length / 2 + 8);
+            ctx.lineTo(-p.width / 2 - 2, -p.length / 2);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 剑身 - v2.5.0 蓝色
+            ctx.fillStyle = swordColor;
+            ctx.beginPath();
+            // 尖头长方形
+            ctx.moveTo(0, -p.length / 2);
+            ctx.lineTo(p.width / 2, -p.length / 4);
+            ctx.lineTo(p.width / 2, p.length / 4);
+            ctx.lineTo(0, p.length / 2);
+            ctx.lineTo(-p.width / 2, p.length / 4);
+            ctx.lineTo(-p.width / 2, -p.length / 4);
+            ctx.closePath();
+            ctx.fill();
+            
+            // 剑柄
+            ctx.fillStyle = '#1a365d';
+            ctx.fillRect(-p.width / 4, p.length / 4, p.width / 2, p.length / 4);
+            
             ctx.restore();
         } else {
             // 普通投射物
@@ -1308,6 +2015,9 @@ function render() {
     // 绘制特效
     renderEffects();
     
+    // 恢复摄像机偏移（UI不随摄像机移动）
+    ctx.restore();
+    
     // UI信息
     drawGameUI();
 }
@@ -1316,11 +2026,12 @@ function render() {
 function drawGameUI() {
     const ctx = game.ctx;
     
-    // 波次
-    ctx.fillStyle = '#fff';
+    // 波次（v2.3.3 BOSS战显示）
+    ctx.fillStyle = game.wave === 12 ? '#ff4444' : '#fff';
     ctx.font = '16px Microsoft YaHei';
     ctx.textAlign = 'left';
-    ctx.fillText('第 ' + game.wave + ' 波', 20, 30);
+    const waveText = game.wave === 12 ? 'BOSS战' : ('第 ' + game.wave + ' 波');
+    ctx.fillText(waveText, 20, 30);
     
     // 敌人数量
     const enemyCount = game.enemies.filter(e => e.alive).length;
@@ -1348,6 +2059,98 @@ function drawGameUI() {
     
     // 绘制技能栏
     drawSkillBar();
+    
+    // 绘制小地图
+    drawMiniMap();
+    
+    // v2.6.0 战斗肉鸽按钮
+    drawBattleRogueButton();
+}
+
+// v2.6.0 绘制战斗肉鸽按钮（v2.7.0 移至左下角）
+function drawBattleRogueButton() {
+    const ctx = game.ctx;
+    
+    // v2.7.0 按钮位置：左下角，主角状态上方
+    const btnX = 20;
+    const btnY = game.height - 150;
+    const btnW = 80;
+    const btnH = 35;
+    
+    // 按钮背景
+    ctx.fillStyle = '#4a5568';
+    ctx.fillRect(btnX, btnY, btnW, btnH);
+    
+    // 按钮文字
+    ctx.fillStyle = '#fff';
+    ctx.font = '14px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText('抽卡', btnX + btnW / 2, btnY + 23);
+    
+    // 保存按钮区域供点击检测
+    game.battleRogueBtn = { x: btnX, y: btnY, w: btnW, h: btnH };
+    
+    // v2.6.0 绘制战斗肉鸽界面
+    drawBattleRogue();
+}
+
+// 绘制游戏结束界面
+function drawGameOver() {
+    const ctx = game.ctx;
+    
+    // 半透明遮罩
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, game.width, game.height);
+    
+    // 标题
+    ctx.fillStyle = '#ff4444';
+    ctx.font = 'bold 48px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText('游戏结束', game.width / 2, game.height / 2 - 50);
+    
+    // 统计
+    ctx.fillStyle = '#fff';
+    ctx.font = '24px Microsoft YaHei';
+    ctx.fillText('到达波次: 第 ' + game.wave + ' 波', game.width / 2, game.height / 2 + 10);
+    ctx.fillText('获得金币: ' + game.gold, game.width / 2, game.height / 2 + 50);
+    
+    // 返回大厅按钮
+    ctx.fillStyle = '#4a5568';
+    ctx.fillRect(game.width / 2 - 80, game.height / 2 + 100, 160, 50);
+    ctx.fillStyle = '#fff';
+    ctx.font = '20px Microsoft YaHei';
+    ctx.fillText('返回大厅', game.width / 2, game.height / 2 + 133);
+}
+
+// 绘制胜利界面（v2.3.3 第12波BOSS战通关）
+function drawVictory() {
+    const ctx = game.ctx;
+    
+    // 半透明遮罩
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, game.width, game.height);
+    
+    // 标题
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 48px Microsoft YaHei';
+    ctx.textAlign = 'center';
+    ctx.fillText('🎉 通关成功！', game.width / 2, game.height / 2 - 80);
+    
+    // 副标题
+    ctx.fillStyle = '#fff';
+    ctx.font = '24px Microsoft YaHei';
+    ctx.fillText('恭喜击败BOSS，完成全部12波挑战！', game.width / 2, game.height / 2 - 30);
+    
+    // 统计
+    ctx.font = '20px Microsoft YaHei';
+    ctx.fillText('获得金币: ' + game.gold, game.width / 2, game.height / 2 + 30);
+    
+    // 返回大厅按钮
+    ctx.fillStyle = '#4a5568';
+    ctx.fillRect(game.width / 2 - 80, game.height / 2 + 80, 160, 50);
+    ctx.fillStyle = '#fff';
+    ctx.font = '20px Microsoft YaHei';
+    ctx.fillText('返回大厅', game.width / 2, game.height / 2 + 113);
 }
 
 // 绘制虚拟摇杆
@@ -1387,12 +2190,35 @@ function drawSwordOrbit(player) {
         const x = player.x + Math.cos(angle) * radius;
         const y = player.y + Math.sin(angle) * radius;
         
-        // 绘制剑
-        ctx.fillStyle = '#87ceeb';
+        // 金光效果
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(angle + Math.PI / 2);
-        ctx.fillRect(-3, -10, 6, 20);
+        
+        // 剑光拖尾
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+        ctx.beginPath();
+        ctx.moveTo(0, -15);
+        ctx.lineTo(4, -10);
+        ctx.lineTo(0, 0);
+        ctx.lineTo(-4, -10);
+        ctx.closePath();
+        ctx.fill();
+        
+        // 剑身（金光）
+        ctx.fillStyle = '#FFD700';
+        ctx.beginPath();
+        ctx.moveTo(0, -15);
+        ctx.lineTo(4, 0);
+        ctx.lineTo(0, 15);
+        ctx.lineTo(-4, 0);
+        ctx.closePath();
+        ctx.fill();
+        
+        // 剑柄
+        ctx.fillStyle = '#B8860B';
+        ctx.fillRect(-2, 15, 4, 5);
+        
         ctx.restore();
     }
 }

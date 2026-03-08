@@ -91,24 +91,24 @@ const SKILLS = {
     },
     五雷咒: {
         name: '五雷咒',
-        type: 'heal',
-        healPercent: 0.8,
-        range: 150,
-        cooldown: 2,
-        description: '治疗范围内队友'
+        type: 'attack',
+        damagePercent: 1.0,
+        range: 120,
+        cooldown: 1.5,
+        description: '雷系攻击技能'
     },
     观音咒: {
         name: '观音咒',
-        type: 'shield',
-        shieldPercent: 0.2,
+        type: 'heal',
+        healPercent: 0.6,
         range: 100,
-        cooldown: 4,
-        description: '为队友套护盾'
+        cooldown: 3,
+        description: '恢复范围内队友生命'
     },
-    圣灵复活: {
-        name: '圣灵复活',
+    还魂咒: {
+        name: '还魂咒',
         type: 'revive',
-        cooldown: 30,
+        cooldown: 120,
         description: '复活死亡队友'
     },
     风雪冰天: {

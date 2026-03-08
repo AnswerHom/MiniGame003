@@ -37,21 +37,38 @@ const SkillManager = {
     useAttackSkill(skill, caster, targets) {
         const damage = caster.attack * skill.damagePercent;
         
+        // 判断是否是李逍遥的技能（使用飞剑外观）
+        const isLiXiaoyao = caster.name === '李逍遥';
+        
         if (skill.direction) {
-            // 多方向攻击
+            // 多方向攻击（四方剑阵）
             for (let i = 0; i < skill.direction; i++) {
                 const angle = (Math.PI * 2 / skill.direction) * i;
-                createProjectile(caster, angle, damage, skill.range);
+                createProjectile(caster, angle, damage, skill.range, {
+                    isSword: isLiXiaoyao,
+                    isGold: false,
+                    // v2.5.0 御剑术剑形发射物
+                    length: 60,
+                    width: 10,
+                    swordColor: '#3182ce'
+                });
             }
         } else {
-            // 单体攻击
+            // 单体攻击（御剑术）
             const target = targets[0];
             if (target) {
                 const dx = target.x - caster.x;
                 const dy = target.y - caster.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 const angle = Math.atan2(dy, dx);
-                createProjectile(caster, angle, damage, skill.range);
+                createProjectile(caster, angle, damage, skill.range, {
+                    isSword: isLiXiaoyao,
+                    isGold: false,
+                    // v2.5.0 御剑术剑形发射物
+                    length: 60,
+                    width: 10,
+                    swordColor: '#3182ce'
+                });
             }
         }
     },
@@ -215,7 +232,7 @@ const SkillManager = {
 };
 
 // 创建投射物
-function createProjectile(caster, angle, damage, range) {
+function createProjectile(caster, angle, damage, range, options = {}) {
     const speed = 400;
     const life = range / speed;
     
@@ -232,7 +249,13 @@ function createProjectile(caster, angle, damage, range) {
         life: life,
         range: range,
         type: isLiXiaoyao ? 'sword' : 'normal',
-        angle: angle
+        angle: angle,
+        // 飞剑属性
+        isSword: isLiXiaoyao || options.isSword || false,
+        isGold: options.isGold || false,
+        length: options.length || 30,
+        width: options.width || 8,
+        swordColor: options.swordColor || '#3182ce'  // v2.5.0 剑颜色
     });
 }
 
