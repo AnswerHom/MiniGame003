@@ -292,8 +292,8 @@ function handleTouchStart(e) {
     const x = touch.clientX - rect.left;
     const y = touch.clientY - rect.top;
     
-    // 只在左侧区域激活摇杆
-    if (x < game.width * 0.4) {
+    // 只在左侧区域激活摇杆（扩大范围到一半）
+    if (x < game.width * 0.5) {
         game.joystick.active = true;
         game.joystick.originX = x;
         game.joystick.originY = y;
