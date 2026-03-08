@@ -208,8 +208,8 @@ function drawMiniMap() {
 function drawBattleRogueButton() {
     const ctx = game.ctx;
     
-    // 按钮位置：左下角
-    const btnX = 20;
+    // 按钮位置：右下角
+    const btnX = game.width - 100;
     const btnY = game.height - 120;
     const btnW = 80;
     const btnH = 40;
