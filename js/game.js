@@ -961,18 +961,11 @@ function addCardToInventory(cardName) {
     game.gachaState.cardInventory[cardName]++;
 }
 
-// 角色颜色配置（v2.5.0）
-const PLAYER_COLORS = {
-    '李逍遥': '#3182ce',  // 蓝色
-    '赵灵儿': '#d53f8c',  // 粉色
-    '阿奴': '#38b2ac'      // 青色
-};
-
 // 创建玩家
 function createPlayer(characterName) {
     const char = CHARACTERS[characterName];
     // v2.5.0 角色颜色
-    const playerColor = PLAYER_COLORS[characterName] || '#3182ce';
+    const playerColor = getCharacterColor(characterName);
     // v2.5.0 显示姓氏
     const surname = characterName.charAt(0);
     
