@@ -309,6 +309,17 @@ function handleTouchStart(e) {
     const x = touch.clientX - rect.left;
     const y = touch.clientY - rect.top;
     
+    // v2.16.0 修复：检查是否点击了UI按钮区域，如果是则不激活摇杆
+    // 肉鸽按钮在右下角
+    const isRogueBtn = game.battleRogueBtn && 
+        x >= game.battleRogueBtn.x && x <= game.battleRogueBtn.x + game.battleRogueBtn.w &&
+        y >= game.battleRogueBtn.y && y <= game.battleRogueBtn.y + game.battleRogueBtn.h;
+    
+    if (isRogueBtn) {
+        // 点击了肉鸽按钮，不激活摇杆，让点击事件继续传递
+        return;
+    }
+    
     // 任意位置激活摇杆
     game.joystick.active = true;
     game.joystick.visible = true;
@@ -974,7 +985,7 @@ function updateFloatingTexts(dt) {
     });
 }
 
-// 绘制飘字
+// 绘制飘字 - v2.16.0 修复：在摄像机上下文中，直接使用世界坐标
 function drawFloatingTexts() {
     const ctx = game.ctx;
     
@@ -984,7 +995,8 @@ function drawFloatingTexts() {
         ctx.fillStyle = ft.color;
         ctx.font = `bold ${ft.size}px Microsoft YaHei`;
         ctx.textAlign = 'center';
-        ctx.fillText(ft.text, ft.x - game.camera.x + game.width / 2, ft.y - game.camera.y + game.height / 2);
+        // 直接使用世界坐标绘制（已在摄像机上下文中）
+        ctx.fillText(ft.text, ft.x, ft.y);
     });
     
     ctx.globalAlpha = 1.0;
