@@ -33,7 +33,8 @@ const CHARACTERS = {
         attackRange: 80,
         critRate: 0.1,
         critDamage: 1.5,
-        skills: ['御剑术', '四方剑阵', '万剑护体']
+        // v2.12.0 初始只带普通技能1，大招和技能2需抽取
+        skills: ['御剑术']
     },
     赵灵儿: {
         name: '赵灵儿',
@@ -45,7 +46,8 @@ const CHARACTERS = {
         attackRange: 150,
         critRate: 0.05,
         critDamage: 1.3,
-        skills: ['五雷咒', '观音咒', '圣灵复活']
+        // v2.12.0 初始只带普通技能1，大招和技能2需抽取
+        skills: ['五雷咒']
     },
     阿奴: {
         name: '阿奴',
@@ -57,7 +59,8 @@ const CHARACTERS = {
         attackRange: 120,
         critRate: 0.15,
         critDamage: 1.6,
-        skills: ['风雪冰天', '雷劫', '阴阳逆转']
+        // v2.12.0 初始只带普通技能1，大招和技能2需抽取
+        skills: ['风雪冰天']
     }
 };
 
@@ -211,7 +214,15 @@ const CARD_DATA = {
     '冰心玉壶': { skill: '功能', effect: 'healAll', value: 0.15, rarity: '稀有', desc: '全队治疗效果+15%' },
     '观音护体': { skill: '功能', effect: 'shieldAll', value: 0.2, rarity: '稀有', desc: '护盾值+20%' },
     '起死回生': { skill: '功能', effect: 'reviveHpAll', value: 0.3, rarity: '史诗', desc: '复活后生命+30%' },
-    '灵泉涌现': { skill: '功能', effect: 'healRange', value: 30, rarity: '稀有', desc: '五雷咒范围+30px' }
+    '灵泉涌现': { skill: '功能', effect: 'healRange', value: 30, rarity: '稀有', desc: '五雷咒范围+30px' },
+    
+    // v2.12.0 技能抽取 - 技能卡（抽到后装备到角色）
+    '四方剑阵': { skill: '四方剑阵', effect: 'equipSkill', rarity: '稀有', desc: '装备技能：四方剑阵', char: '李逍遥' },
+    '万剑护体': { skill: '万剑护体', effect: 'equipSkill', rarity: '史诗', desc: '装备技能：万剑护体', char: '李逍遥' },
+    '观音咒': { skill: '观音咒', effect: 'equipSkill', rarity: '稀有', desc: '装备技能：观音咒', char: '赵灵儿' },
+    '圣灵复活': { skill: '圣灵复活', effect: 'equipSkill', rarity: '史诗', desc: '装备技能：圣灵复活', char: '赵灵儿' },
+    '雷劫': { skill: '雷劫', effect: 'equipSkill', rarity: '稀有', desc: '装备技能：雷劫', char: '阿奴' },
+    '阴阳逆转': { skill: '阴阳逆转', effect: 'equipSkill', rarity: '史诗', desc: '装备技能：阴阳逆转', char: '阿奴' }
 };
 
 // 卡牌稀有度颜色

@@ -80,7 +80,13 @@ const game = {
         selectedCard: null,
         // 卡牌系统
         cardInventory: {}, // 卡牌库存 {卡牌名: 数量}
-        equippedCards: {}  // 已装备卡牌 {角色名: [卡牌1, 卡牌2, 卡牌3]}
+        equippedCards: {},  // 已装备卡牌 {角色名: [卡牌1, 卡牌2, 卡牌3]}
+    },
+    // v2.12.0 技能抽取 - 已解锁技能
+    unlockedSkills: {
+        '李逍遥': ['御剑术'],  // 初始只有普通技能1
+        '赵灵儿': ['五雷咒'],
+        '阿奴': ['风雪冰天']
     },
     // 波次系统
     waveState: 'waiting', // waiting, spawning, countdown, playing, complete

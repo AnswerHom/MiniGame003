@@ -40,20 +40,39 @@ function closeBattleRogue() {
     battleRogueState.active = false;
 }
 
-// 生成卡牌选项（v2.8.0 按队伍英雄筛选卡牌池）
+// 生成卡牌选项（v2.8.0 按队伍英雄筛选卡牌池，v2.12.0 按已解锁技能筛选）
 function generateCardOptions() {
     battleRogueState.availableCards = [];
     
     // v2.8.0 获取队伍中所有英雄的卡牌
     const teamMembers = TeamManager.getMembers();
     const teamCards = [];
+    const unlockedSkillCards = [];  // 技能卡（进阶技能）
     
     // 遍历所有卡牌，筛选队伍英雄相关的卡牌
     for (const cardName in CARD_DATA) {
         const cardData = CARD_DATA[cardName];
+        
+        // v2.12.0 技能抽取 - 技能卡处理
+        if (cardData.effect === 'equipSkill') {
+            // 检查角色是否已拥有且技能未解锁
+            if (teamMembers.includes(cardData.char)) {
+                const unlocked = game.unlockedSkills[cardData.char] || [];
+                if (!unlocked.includes(cardData.skill)) {
+                    // 技能未解锁，添加到技能卡池
+                    unlockedSkillCards.push(cardName);
+                }
+            }
+            continue;
+        }
+        
         // 检查卡牌是否属于队伍中的英雄
         if (teamMembers.includes(cardData.skill)) {
-            teamCards.push(cardName);
+            // v2.12.0 检查强化卡的技能是否已解锁
+            const unlocked = game.unlockedSkills[cardData.skill] || [];
+            if (unlocked.includes(cardData.skill)) {
+                teamCards.push(cardName);
+            }
         }
         // 也包含通用卡牌
         if (cardData.skill === '通用' || cardData.skill === '功能') {
@@ -61,16 +80,19 @@ function generateCardOptions() {
         }
     }
     
-    // 如果队伍没有卡牌，使用全部卡牌
-    const cardPool = teamCards.length > 0 ? teamCards : Object.keys(CARD_DATA);
+    // 优先添加技能卡（如果没有未解锁的技能卡，则添加强化卡）
+    const cardPool = [...unlockedSkillCards, ...teamCards];
+    
+    // 如果没有可用卡牌，使用全部卡牌
+    const finalPool = cardPool.length > 0 ? cardPool : Object.keys(CARD_DATA);
     
     for (let i = 0; i < BATTLE_ROGUE_CONFIG.cardOptions; i++) {
-        const randomCard = cardPool[Math.floor(Math.random() * cardPool.length)];
+        const randomCard = finalPool[Math.floor(Math.random() * finalPool.length)];
         battleRogueState.availableCards.push(randomCard);
     }
 }
 
-// 抽卡（v2.8.0 按队伍英雄筛选卡牌池）
+// 抽卡（v2.8.0 按队伍英雄筛选卡牌池，v2.12.0 添加技能卡处理）
 function battleDrawCard() {
     if (game.gold < battleRogueState.currentCost) {
         console.log('金币不足');
@@ -85,31 +107,80 @@ function battleDrawCard() {
         BATTLE_ROGUE_CONFIG.baseCost * Math.pow(BATTLE_ROGUE_CONFIG.costGrowth, battleRogueState.drawCount)
     );
     
-    // v2.8.0 获取队伍中所有英雄的卡牌
+    // v2.12.0 获取队伍中所有英雄的卡牌（包括技能卡和强化卡）
     const teamMembers = TeamManager.getMembers();
     const teamCards = [];
+    const unlockedSkillCards = [];
+    
     for (const cardName in CARD_DATA) {
         const cardData = CARD_DATA[cardName];
+        
+        // v2.12.0 技能卡处理
+        if (cardData.effect === 'equipSkill') {
+            if (teamMembers.includes(cardData.char)) {
+                const unlocked = game.unlockedSkills[cardData.char] || [];
+                if (!unlocked.includes(cardData.skill)) {
+                    unlockedSkillCards.push(cardName);
+                }
+            }
+            continue;
+        }
+        
+        // 强化卡处理
         if (teamMembers.includes(cardData.skill)) {
-            teamCards.push(cardName);
+            const unlocked = game.unlockedSkills[cardData.skill] || [];
+            if (unlocked.includes(cardData.skill)) {
+                teamCards.push(cardName);
+            }
         }
         if (cardData.skill === '通用' || cardData.skill === '功能') {
             teamCards.push(cardName);
         }
     }
-    const cardPool = teamCards.length > 0 ? teamCards : Object.keys(CARD_DATA);
+    
+    // 优先从技能卡池抽取
+    const cardPool = unlockedSkillCards.length > 0 ? unlockedSkillCards : teamCards;
+    const finalPool = cardPool.length > 0 ? cardPool : Object.keys(CARD_DATA);
     
     // 随机获得1张卡牌
-    const drawnCard = cardPool[Math.floor(Math.random() * cardPool.length)];
+    const drawnCard = finalPool[Math.floor(Math.random() * finalPool.length)];
+    const cardData = CARD_DATA[drawnCard];
     
-    // 添加到玩家卡牌库（这里简化处理，实际应该加到对应角色的卡牌库）
-    if (!game.playerCards) game.playerCards = [];
-    if (!game.playerCards.includes(drawnCard)) {
-        game.playerCards.push(drawnCard);
+    // v2.12.0 技能抽取 - 检查是否抽到技能卡
+    if (cardData.effect === 'equipSkill') {
+        const charName = cardData.char;
+        const skillName = cardData.skill;
+        
+        // 解锁技能
+        if (!game.unlockedSkills[charName]) {
+            game.unlockedSkills[charName] = [];
+        }
+        if (!game.unlockedSkills[charName].includes(skillName)) {
+            game.unlockedSkills[charName].push(skillName);
+        }
+        
+        // 将技能装备到队伍中对应角色的技能栏
+        game.players.forEach(player => {
+            if (player.name === charName && player.skills) {
+                if (!player.skills.includes(skillName)) {
+                    player.skills.push(skillName);
+                }
+            }
+        });
+        
+        // 显示抽卡结果
+        battleRogueState.selectedCard = '获得技能: ' + skillName;
+    } else {
+        // 添加到玩家卡牌库
+        if (!game.playerCards) game.playerCards = [];
+        if (!game.playerCards.includes(drawnCard)) {
+            game.playerCards.push(drawnCard);
+        }
+        
+        // 显示抽卡结果
+        battleRogueState.selectedCard = drawnCard;
     }
     
-    // 显示抽卡结果
-    battleRogueState.selectedCard = drawnCard;
     battleRogueState.showResult = true;
     setTimeout(() => {
         battleRogueState.showResult = false;
@@ -143,11 +214,40 @@ function handleBattleRogueClick(x, y) {
         if (x >= cardX && x <= cardX + cardWidth && y >= cardY && y <= cardY + cardHeight) {
             // 选中卡牌
             const cardName = battleRogueState.availableCards[i];
-            if (!game.playerCards) game.playerCards = [];
-            if (!game.playerCards.includes(cardName)) {
-                game.playerCards.push(cardName);
+            const cardData = CARD_DATA[cardName];
+            
+            // v2.12.0 技能抽取 - 检查是否抽到技能卡
+            if (cardData.effect === 'equipSkill') {
+                const charName = cardData.char;
+                const skillName = cardData.skill;
+                
+                // 解锁技能
+                if (!game.unlockedSkills[charName]) {
+                    game.unlockedSkills[charName] = [];
+                }
+                if (!game.unlockedSkills[charName].includes(skillName)) {
+                    game.unlockedSkills[charName].push(skillName);
+                }
+                
+                // 将技能装备到队伍中对应角色的技能栏
+                game.players.forEach(player => {
+                    if (player.name === charName && player.skills) {
+                        if (!player.skills.includes(skillName)) {
+                            player.skills.push(skillName);
+                        }
+                    }
+                });
+                
+                battleRogueState.selectedCard = '获得技能: ' + skillName;
+            } else {
+                // 普通卡牌
+                if (!game.playerCards) game.playerCards = [];
+                if (!game.playerCards.includes(cardName)) {
+                    game.playerCards.push(cardName);
+                }
+                battleRogueState.selectedCard = cardName;
             }
-            battleRogueState.selectedCard = cardName;
+            
             battleRogueState.showResult = true;
             setTimeout(() => {
                 battleRogueState.showResult = false;
