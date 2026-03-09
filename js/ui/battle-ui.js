@@ -191,33 +191,3 @@ function drawMiniMap() {
 }
 
 // 绘制肉鸽按钮
-function drawBattleRogueButton() {
-    const ctx = game.ctx;
-    
-    // 按钮位置：右下角
-    const btnX = game.width - 100;
-    const btnY = game.height - 60;
-    const btnW = 80;
-    const btnH = 35;
-    
-    // 按钮背景 - 根据金币是否足够改变颜色
-    const canAfford = game.gold >= battleRogueState.clickCost;
-    ctx.fillStyle = canAfford ? '#4a5568' : '#666';
-    ctx.fillRect(btnX, btnY, btnW, btnH);
-    
-    // 按钮文字
-    ctx.fillStyle = '#fff';
-    ctx.font = '12px Microsoft YaHei';
-    ctx.textAlign = 'center';
-    // v2.16.0 显示点击费用
-    ctx.fillText('肉鸽', btnX + btnW / 2, btnY + 15);
-    ctx.font = '10px Microsoft YaHei';
-    ctx.fillStyle = canAfford ? '#ffd700' : '#ff6666';
-    ctx.fillText(battleRogueState.clickCost + '💰', btnX + btnW / 2, btnY + 28);
-    
-    // 保存按钮区域供点击检测
-    game.battleRogueBtn = { x: btnX, y: btnY, w: btnW, h: btnH };
-    
-    // 绘制战斗肉鸽界面
-    drawBattleRogue();
-}
