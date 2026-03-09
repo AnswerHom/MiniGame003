@@ -309,7 +309,13 @@ function handleTouchStart(e) {
     const x = touch.clientX - rect.left;
     const y = touch.clientY - rect.top;
     
-    // v2.16.0 修复：检查是否点击了UI按钮区域
+    // v2.16.0 修复：如果肉鸽界面已打开，触摸用于选择卡牌
+    if (battleRogueState.active) {
+        handleBattleRogueClick(x, y);
+        return;
+    }
+    
+    // 检查是否点击了UI按钮区域
     // 肉鸽按钮在右下角
     if (game.battleRogueBtn) {
         const btn = game.battleRogueBtn;
@@ -338,7 +344,8 @@ function handleTouchStart(e) {
 
 // 处理触摸移动 - 虚拟摇杆
 function handleTouchMove(e) {
-    if (!game.joystick.active) return;
+    // 如果肉鸽界面打开，不处理摇杆
+    if (battleRogueState.active || !game.joystick.active) return;
     
     e.preventDefault();
     
@@ -376,6 +383,9 @@ function handleTouchMove(e) {
 
 // 处理触摸结束 - 虚拟摇杆
 function handleTouchEnd(e) {
+    // 如果肉鸽界面打开，不处理摇杆
+    if (battleRogueState.active) return;
+    
     for (let i = 0; i < e.changedTouches.length; i++) {
         const touch = e.changedTouches[i];
         if (touch.identifier === game.joystick.touchId) {
