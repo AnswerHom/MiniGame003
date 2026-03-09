@@ -217,14 +217,17 @@ function battleRefreshCards() {
 function handleBattleRogueClick(x, y) {
     if (!battleRogueState.active) return;
     
-    const cardWidth = 80;
-    const cardHeight = 100;
-    const startX = game.width / 2 - (BATTLE_ROGUE_CONFIG.cardOptions * cardWidth) / 2;
+    // v2.14.0 卡牌尺寸增大
+    const cardWidth = 140;
+    const cardHeight = 200;
+    const cardGap = 30;
+    const totalWidth = battleRogueState.availableCards.length * cardWidth + (battleRogueState.availableCards.length - 1) * cardGap;
+    const startX = game.width / 2 - totalWidth / 2;
     const cardY = game.height / 2 - cardHeight / 2;
     
-    // 检查卡牌点击
+    // 检查卡牌点击 - v2.14.0 使用新的间距
     for (let i = 0; i < battleRogueState.availableCards.length; i++) {
-        const cardX = startX + i * cardWidth;
+        const cardX = startX + i * (cardWidth + cardGap);
         if (x >= cardX && x <= cardX + cardWidth && y >= cardY && y <= cardY + cardHeight) {
             // 选中卡牌
             const cardName = battleRogueState.availableCards[i];
@@ -271,17 +274,19 @@ function handleBattleRogueClick(x, y) {
         }
     }
     
-    // 检查抽卡按钮
-    const drawBtnX = game.width / 2 - 120;
-    const drawBtnY = game.height / 2 + 80;
-    if (x >= drawBtnX && x <= drawBtnX + 100 && y >= drawBtnY && y <= drawBtnY + 40) {
+    // v2.14.0 检查抽卡按钮 - 新尺寸和位置
+    const btnWidth = 160;
+    const btnHeight = 50;
+    const drawBtnX = game.width / 2 - btnWidth - 20;
+    const drawBtnY = game.height / 2 + 200 / 2 + 40;  // cardHeight/2 + margin
+    if (x >= drawBtnX && x <= drawBtnX + btnWidth && y >= drawBtnY && y <= drawBtnY + btnHeight) {
         battleDrawCard();
         return;
     }
     
     // 检查刷新按钮
     const refreshBtnX = game.width / 2 + 20;
-    if (x >= refreshBtnX && x <= refreshBtnX + 100 && y >= drawBtnY && y <= drawBtnY + 40) {
+    if (x >= refreshBtnX && x <= refreshBtnX + btnWidth && y >= drawBtnY && y <= drawBtnY + btnHeight) {
         battleRefreshCards();
         return;
     }
