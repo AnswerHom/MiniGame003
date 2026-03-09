@@ -177,16 +177,20 @@ function drawGachaResults() {
         const cardList = game.gachaState.drawnCardsList;
         const cardStartX = game.width / 2 - (cardList.length * 60 + (cardList.length - 1) * 10) / 2;
         
-        cardList.forEach((card, i) => {
+        cardList.forEach((cardName, i) => {
             const x = cardStartX + i * 70;
             const cardY = game.height / 2 + 140;
             
-            ctx.fillStyle = getCardColor(card.rarity);
+            // cardName 是字符串，从 CARD_DATA 获取稀有度
+            const cardData = CARD_DATA[cardName] || {};
+            const rarity = cardData.rarity || '普通';
+            
+            ctx.fillStyle = getCardColor(rarity);
             ctx.fillRect(x - 25, cardY - 15, 50, 30);
             
             ctx.fillStyle = '#fff';
             ctx.font = '12px Microsoft YaHei';
-            ctx.fillText(card.name.substring(0, 4), x, cardY + 5);
+            ctx.fillText(cardName.substring(0, 4), x, cardY + 5);
         });
     }
 }
