@@ -94,13 +94,3 @@ function drawLobby() {
     ctx.font = '18px Microsoft YaHei';
     ctx.fillText('大地图', game.width - 70, game.height - 33);
 }
-
-// 获取角色颜色
-function getCharacterColor(char) {
-    switch (char) {
-        case '李逍遥': return '#4169E1';
-        case '赵灵儿': return '#FF69B4';
-        case '阿奴': return '#9370DB';
-        default: return '#666';
-    }
-}
