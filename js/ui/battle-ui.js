@@ -35,8 +35,8 @@ function drawGameUI() {
     // 绘制虚拟摇杆
     drawJoystick();
     
-    // 绘制技能栏
-    drawSkillBar();
+    // v2.11.0 移除技能快捷栏（改为自动释放）
+    // drawSkillBar();
     
     // 绘制小地图
     drawMiniMap();

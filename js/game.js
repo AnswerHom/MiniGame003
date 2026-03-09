@@ -1153,23 +1153,67 @@ function update(dt) {
             }
         }
         
-        // v2.9.0 自动释放 - 技能冷却完毕时自动释放
+        // v2.11.0 技能自动释放 - 基于攻速、按顺序、大招独立
         if (player.skills && player.skills.length > 0) {
+            // 初始化技能索引和上次释放时间
+            if (!player.skillIndex) player.skillIndex = 0;
+            if (!player.lastSkillTime) player.lastSkillTime = 0;
+            
+            // 计算普通技能释放间隔（基于攻速，攻速1.0=1秒，攻速2.0=0.5秒）
+            const skillInterval = 1 / player.attackSpeed;
+            
+            // 区分普通技能和大招（冷却时间>=10秒视为大招）
+            const normalSkills = [];
+            const ultimateSkills = [];
             player.skills.forEach(skillName => {
                 const skill = SKILLS[skillName];
                 if (!skill) return;
-                
-                // 检查冷却是否完毕
+                if (skill.cooldown >= 10) {
+                    ultimateSkills.push(skillName);
+                } else {
+                    normalSkills.push(skillName);
+                }
+            });
+            
+            // 1. 大招单独判断 - 冷却完毕就释放
+            ultimateSkills.forEach(skillName => {
                 const cooldown = player.skillCooldowns && player.skillCooldowns[skillName];
                 if (cooldown === undefined || cooldown <= 0) {
-                    // 找到最近的目标
                     const target = findNearestEnemy(player);
                     if (target) {
-                        // 使用技能
                         usePlayerSkill(player, skillName);
                     }
                 }
             });
+            
+            // 2. 普通技能按顺序循环释放，基于攻速
+            if (normalSkills.length > 0) {
+                const timeSinceLastSkill = game.time - player.lastSkillTime;
+                
+                if (timeSinceLastSkill >= skillInterval) {
+                    const target = findNearestEnemy(player);
+                    if (target) {
+                        let released = false;
+                        const skillCount = normalSkills.length;
+                        
+                        for (let i = 0; i < skillCount; i++) {
+                            const checkIndex = (player.skillIndex + i) % skillCount;
+                            const skillName = normalSkills[checkIndex];
+                            const skill = SKILLS[skillName];
+                            if (!skill) continue;
+                            
+                            const cooldown = player.skillCooldowns && player.skillCooldowns[skillName];
+                            if (cooldown === undefined || cooldown <= 0) {
+                                usePlayerSkill(player, skillName);
+                                player.skillIndex = (checkIndex + 1) % skillCount;
+                                player.lastSkillTime = game.time;
+                                released = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
         }
         
         // 万剑护体持续伤害
