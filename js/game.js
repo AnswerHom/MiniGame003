@@ -1922,13 +1922,37 @@ function render() {
             ctx.fillText(enemy.displayText, enemy.x, enemy.y);
         }
         
-        // 血条
+        // v2.17.0 圆形血条
         const hpPercent = enemy.hp / enemy.maxHp;
-        const barWidth = enemy.size * 2;
-        ctx.fillStyle = '#333';
-        ctx.fillRect(enemy.x - enemy.size, enemy.y - enemy.size - 8, barWidth, 4);
-        ctx.fillStyle = COLORS.ui.hp;
-        ctx.fillRect(enemy.x - enemy.size, enemy.y - enemy.size - 8, barWidth * hpPercent, 4);
+        
+        // 根据血量百分比选择颜色
+        let hpColor;
+        if (hpPercent > 0.5) {
+            hpColor = '#00FF00'; // 绿色 100%-51%
+        } else if (hpPercent > 0.2) {
+            hpColor = '#FFFF00'; // 黄色 50%-21%
+        } else {
+            hpColor = '#FF0000'; // 红色 20%-0%
+        }
+        
+        // 绘制圆形血条（环绕在怪物周围）
+        const radius = enemy.size + 5;
+        const startAngle = -Math.PI / 2;
+        const endAngle = startAngle + (Math.PI * 2 * hpPercent);
+        
+        // 背景圈
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        
+        // 血量圈
+        ctx.beginPath();
+        ctx.arc(enemy.x, enemy.y, radius, startAngle, endAngle);
+        ctx.strokeStyle = hpColor;
+        ctx.lineWidth = 3;
+        ctx.stroke();
     });
     
     // 绘制玩家（v2.5.0 主角形象）
