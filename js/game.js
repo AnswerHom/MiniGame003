@@ -425,8 +425,8 @@ function usePlayerSkill(player, skillName) {
             break;
     }
     
-    // v2.13.0 技能名字飘字
-    addFloatingText(player.x, player.y - 30, skillName, '#fff', 18);
+    // v2.13.0 技能名字飘字 - 调整位置到头顶上方
+    addFloatingText(player.x, player.y - 60, skillName, '#fff', 20);
 }
 
 // 激活万剑护体
@@ -1289,10 +1289,8 @@ function update(dt) {
                         // 50%攻击力/秒的伤害
                         const damage = player.attack * 0.5 * dt;
                         enemy.hp -= damage;
-                        // v2.13.0 伤害飘字
-                        if (enemy.hp > 0) {
-                            addFloatingText(enemy.x, enemy.y - 20, Math.floor(damage), '#fff', 14);
-                        }
+                        // v2.13.0 伤害飘字 - 无论敌人是否死亡都显示
+                        addFloatingText(enemy.x, enemy.y - 20, Math.floor(damage), '#fff', 14);
                         if (enemy.hp <= 0) {
                             enemy.alive = false;
                             game.gold += enemy.exp;
@@ -1418,12 +1416,10 @@ function update(dt) {
             
             if (dist < enemy.size) {
                 enemy.hp -= p.damage;
-                // v2.13.0 伤害飘字
-                if (enemy.hp > 0) {
-                    const color = p.isCrit ? '#ffd700' : '#fff';
-                    const size = p.isCrit ? 18 : 14;
-                    addFloatingText(enemy.x, enemy.y - 20, Math.floor(p.damage), color, size, p.isCrit);
-                }
+                // v2.13.0 伤害飘字 - 无论敌人是否死亡都显示
+                const color = p.isCrit ? '#ffd700' : '#fff';
+                const size = p.isCrit ? 18 : 14;
+                addFloatingText(enemy.x, enemy.y - 20, Math.floor(p.damage), color, size, p.isCrit);
                 if (enemy.hp <= 0) {
                     enemy.alive = false;
                     game.gold += enemy.exp;
@@ -1850,10 +1846,8 @@ function renderEffects() {
                             const dist = Math.sqrt(dx * dx + dy * dy);
                             if (dist < effect.radius) {
                                 enemy.hp -= effect.damage;
-                                // v2.13.0 伤害飘字
-                                if (enemy.hp > 0) {
-                                    addFloatingText(enemy.x, enemy.y - 20, Math.floor(effect.damage), '#fff', 14);
-                                }
+                                // v2.13.0 伤害飘字 - 无论敌人是否死亡都显示
+                                addFloatingText(enemy.x, enemy.y - 20, Math.floor(effect.damage), '#fff', 14);
                                 if (enemy.hp <= 0) {
                                     enemy.alive = false;
                                     game.gold += enemy.exp;
