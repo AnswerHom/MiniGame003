@@ -1153,6 +1153,25 @@ function update(dt) {
             }
         }
         
+        // v2.9.0 自动释放 - 技能冷却完毕时自动释放
+        if (player.skills && player.skills.length > 0) {
+            player.skills.forEach(skillName => {
+                const skill = SKILLS[skillName];
+                if (!skill) return;
+                
+                // 检查冷却是否完毕
+                const cooldown = player.skillCooldowns && player.skillCooldowns[skillName];
+                if (cooldown === undefined || cooldown <= 0) {
+                    // 找到最近的目标
+                    const target = findNearestEnemy(player);
+                    if (target) {
+                        // 使用技能
+                        usePlayerSkill(player, skillName);
+                    }
+                }
+            });
+        }
+        
         // 万剑护体持续伤害
         if (player.swordOrbit) {
             // 检查是否到期
@@ -1200,17 +1219,7 @@ function update(dt) {
         player.x = Math.max(player.size, Math.min(game.worldWidth - player.size, player.x));
         player.y = Math.max(player.size, Math.min(game.worldHeight - player.size, player.y));
         
-        // 自动攻击
-        player.lastAttack += dt;
-        const attackInterval = 1 / player.attackSpeed;
-        
-        if (player.lastAttack >= attackInterval) {
-            const target = findNearestEnemy(player);
-            if (target) {
-                playerAttack(player, target);
-                player.lastAttack = 0;
-            }
-        }
+        // v2.9.0 取消普攻 - 普通攻击已移除，只保留技能释放
     });
     
     // v2.3.1 队伍系统 - 队伍跟随更新
