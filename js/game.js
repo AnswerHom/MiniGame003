@@ -238,11 +238,19 @@ function handleClick(e) {
             return;
         }
         
-        // 检查战斗肉鸽按钮点击
+        // 检查战斗肉鸽按钮点击 - v2.16.0 点击收费（斐波那契数列）
         if (game.battleRogueBtn) {
             const btn = game.battleRogueBtn;
             if (x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) {
-                openBattleRogue();
+                // v2.16.0 检查点击费用
+                if (game.gold >= battleRogueState.clickCost) {
+                    game.gold -= battleRogueState.clickCost;
+                    // 费用递增（斐波那契数列：100, 150, 250, 400, 650...）
+                    const oldClickCost = battleRogueState.clickCost;
+                    battleRogueState.clickCost = battleRogueState.clickCost + battleRogueState.lastClickCost;
+                    battleRogueState.lastClickCost = oldClickCost;
+                    openBattleRogue();
+                }
                 return;
             }
         }

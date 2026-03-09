@@ -8,7 +8,10 @@ const battleRogueState = {
     refreshCost: 50,         // 刷新费用
     availableCards: [],      // 当前可选卡牌
     selectedCard: null,      // 选中的卡牌
-    cardOptions: 3          // 每次显示3张卡牌
+    cardOptions: 3,          // 每次显示3张卡牌
+    // v2.16.0 点击收费（斐波那契数列）
+    clickCost: 100,          // 点击进入费用
+    lastClickCost: 0         // 上一次费用（用于斐波那契）
 };
 
 // 战斗肉鸽配置
@@ -26,6 +29,9 @@ function initBattleRogue() {
     battleRogueState.currentCost = BATTLE_ROGUE_CONFIG.baseCost;
     battleRogueState.availableCards = [];
     battleRogueState.selectedCard = null;
+    // v2.16.0 点击收费初始化（斐波那契：100, 150, 250, 400...）
+    battleRogueState.clickCost = 100;
+    battleRogueState.lastClickCost = 50;
 }
 
 // 打开战斗肉鸽界面
