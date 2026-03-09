@@ -309,15 +309,21 @@ function handleTouchStart(e) {
     const x = touch.clientX - rect.left;
     const y = touch.clientY - rect.top;
     
-    // v2.16.0 修复：检查是否点击了UI按钮区域，如果是则不激活摇杆
+    // v2.16.0 修复：检查是否点击了UI按钮区域
     // 肉鸽按钮在右下角
-    const isRogueBtn = game.battleRogueBtn && 
-        x >= game.battleRogueBtn.x && x <= game.battleRogueBtn.x + game.battleRogueBtn.w &&
-        y >= game.battleRogueBtn.y && y <= game.battleRogueBtn.y + game.battleRogueBtn.h;
-    
-    if (isRogueBtn) {
-        // 点击了肉鸽按钮，不激活摇杆，让点击事件继续传递
-        return;
+    if (game.battleRogueBtn) {
+        const btn = game.battleRogueBtn;
+        if (x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) {
+            // 点击了肉鸽按钮，检查费用并打开界面
+            if (game.gold >= battleRogueState.clickCost) {
+                game.gold -= battleRogueState.clickCost;
+                const oldClickCost = battleRogueState.clickCost;
+                battleRogueState.clickCost = battleRogueState.clickCost + battleRogueState.lastClickCost;
+                battleRogueState.lastClickCost = oldClickCost;
+                openBattleRogue();
+            }
+            return;
+        }
     }
     
     // 任意位置激活摇杆
