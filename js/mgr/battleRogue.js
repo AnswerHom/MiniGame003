@@ -44,8 +44,12 @@ function closeBattleRogue() {
 function generateCardOptions() {
     battleRogueState.availableCards = [];
     
-    // v2.8.0 获取队伍中所有英雄的卡牌
-    const teamMembers = TeamManager.getMembers();
+    // v2.12.0 使用 game.players 获取当前战斗中的角色
+    const teamMembers = game.players.map(p => p.name);
+    
+    // 如果没有战斗中的玩家，使用 TeamManager
+    const actualTeamMembers = teamMembers.length > 0 ? teamMembers : TeamManager.getMembers();
+    
     const teamCards = [];
     const unlockedSkillCards = [];  // 技能卡（进阶技能）
     
@@ -55,8 +59,8 @@ function generateCardOptions() {
         
         // v2.12.0 技能抽取 - 技能卡处理
         if (cardData.effect === 'equipSkill') {
-            // 检查角色是否已拥有且技能未解锁
-            if (teamMembers.includes(cardData.char)) {
+            // 检查角色是否在队伍中且技能未解锁
+            if (actualTeamMembers.includes(cardData.char)) {
                 const unlocked = game.unlockedSkills[cardData.char] || [];
                 if (!unlocked.includes(cardData.skill)) {
                     // 技能未解锁，添加到技能卡池
@@ -67,7 +71,7 @@ function generateCardOptions() {
         }
         
         // 检查卡牌是否属于队伍中的英雄
-        if (teamMembers.includes(cardData.skill)) {
+        if (actualTeamMembers.includes(cardData.skill)) {
             // v2.12.0 检查强化卡的技能是否已解锁
             const unlocked = game.unlockedSkills[cardData.skill] || [];
             if (unlocked.includes(cardData.skill)) {
@@ -108,7 +112,10 @@ function battleDrawCard() {
     );
     
     // v2.12.0 获取队伍中所有英雄的卡牌（包括技能卡和强化卡）
-    const teamMembers = TeamManager.getMembers();
+    // 使用 game.players 获取当前战斗中的角色
+    const teamMembers = game.players.map(p => p.name);
+    const actualTeamMembers = teamMembers.length > 0 ? teamMembers : TeamManager.getMembers();
+    
     const teamCards = [];
     const unlockedSkillCards = [];
     
@@ -117,7 +124,7 @@ function battleDrawCard() {
         
         // v2.12.0 技能卡处理
         if (cardData.effect === 'equipSkill') {
-            if (teamMembers.includes(cardData.char)) {
+            if (actualTeamMembers.includes(cardData.char)) {
                 const unlocked = game.unlockedSkills[cardData.char] || [];
                 if (!unlocked.includes(cardData.skill)) {
                     unlockedSkillCards.push(cardName);
@@ -127,7 +134,7 @@ function battleDrawCard() {
         }
         
         // 强化卡处理
-        if (teamMembers.includes(cardData.skill)) {
+        if (actualTeamMembers.includes(cardData.skill)) {
             const unlocked = game.unlockedSkills[cardData.skill] || [];
             if (unlocked.includes(cardData.skill)) {
                 teamCards.push(cardName);
