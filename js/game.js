@@ -425,8 +425,8 @@ function usePlayerSkill(player, skillName) {
             break;
     }
     
-    // v2.13.0 技能名字飘字 - 调整位置到头顶上方
-    addFloatingText(player.x, player.y - 60, skillName, '#fff', 20);
+    // v2.13.0 技能名字飘字 - 位置在主角形象正上方
+    addFloatingText(player.x, player.y - 50, skillName, '#fff', 20);
 }
 
 // 激活万剑护体
