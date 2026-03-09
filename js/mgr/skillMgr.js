@@ -37,8 +37,9 @@ const SkillManager = {
     useAttackSkill(skill, caster, targets) {
         const damage = caster.attack * skill.damagePercent;
         
-        // 判断是否是李逍遥的技能（使用飞剑外观）
+        // v2.19.0 判断技能类型
         const isLiXiaoyao = caster.name === '李逍遥';
+        const isHoming = skill.type === 'homing';  // 御剑术追踪
         
         if (skill.direction) {
             // 多方向攻击（四方剑阵）
@@ -47,27 +48,29 @@ const SkillManager = {
                 createProjectile(caster, angle, damage, skill.range, {
                     isSword: isLiXiaoyao,
                     isGold: false,
-                    // v2.5.0 御剑术剑形发射物
                     length: 60,
                     width: 10,
                     swordColor: '#3182ce'
                 });
             }
         } else {
-            // 单体攻击（御剑术）
+            // 单体攻击
             const target = targets[0];
             if (target) {
                 const dx = target.x - caster.x;
                 const dy = target.y - caster.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
                 const angle = Math.atan2(dy, dx);
+                
+                // v2.19.0 御剑术：金色剑、追踪
+                const isGoldSword = isHoming;
+                
                 createProjectile(caster, angle, damage, skill.range, {
-                    isSword: isLiXiaoyao,
-                    isGold: false,
-                    // v2.5.0 御剑术剑形发射物
+                    isSword: isLiXiaoyao || isHoming,
+                    isGold: isGoldSword,
                     length: 60,
                     width: 10,
-                    swordColor: '#3182ce'
+                    swordColor: isGoldSword ? '#FFD700' : '#3182ce',  // 金色
+                    isHoming: isHoming  // 添加追踪标记
                 });
             }
         }

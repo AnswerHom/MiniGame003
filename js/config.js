@@ -45,8 +45,8 @@ const CHARACTERS = {
         attackRange: 80,
         critRate: 0.1,
         critDamage: 1.5,
-        // v2.12.0 初始只带普通技能1，大招和技能2需抽取
-        skills: ['御剑术']
+        // v2.19.0 初始只带普通技能1（飞剑术），御剑术需抽取
+        skills: ['飞剑术']
     },
     赵灵儿: {
         name: '赵灵儿',
@@ -78,13 +78,21 @@ const CHARACTERS = {
 
 // 技能配置
 const SKILLS = {
-    御剑术: {
-        name: '御剑术',
+    飞剑术: {
+        name: '飞剑术',
         type: 'attack',
         damagePercent: 1.5,
         range: 200,
         cooldown: 1.5,
         description: '向前方发射一道直线剑气'
+    },
+    御剑术: {
+        name: '御剑术',
+        type: 'homing',  // v2.19.0 追踪技能
+        damagePercent: 1.5,
+        range: 300,
+        cooldown: 2.0,
+        description: '金色飞剑自动追踪最近敌人'
     },
     四方剑阵: {
         name: '四方剑阵',
@@ -162,17 +170,17 @@ const SKILLS = {
 
 // 肉鸽卡牌数据
 const CARD_DATA = {
-    // 李逍遥 - 御剑术卡牌
-    '锋芒毕露': { skill: '御剑术', effect: 'damage', value: 0.2, rarity: '普通', desc: '御剑术伤害+20%' },
-    '分光化影': { skill: '御剑术', effect: 'projectileCount', value: 1, rarity: '稀有', desc: '御剑术发射数量+1' },
-    '定身咒': { skill: '御剑术', effect: 'stun', value: 1, rarity: '稀有', desc: '御剑术命中目标定身1秒' },
-    '万剑齐发': { skill: '御剑术', effect: 'spread', value: 3, rarity: '史诗', desc: '御剑术变成散射3道' },
+    // 李逍遥 - 飞剑术卡牌（普通1）
+    '锋芒毕露': { skill: '飞剑术', effect: 'damage', value: 0.2, rarity: '普通', desc: '飞剑术伤害+20%' },
+    '分光化影': { skill: '飞剑术', effect: 'projectileCount', value: 1, rarity: '稀有', desc: '飞剑术发射数量+1' },
+    '定身咒': { skill: '飞剑术', effect: 'stun', value: 1, rarity: '稀有', desc: '飞剑术命中目标定身1秒' },
+    '万剑齐发': { skill: '飞剑术', effect: 'spread', value: 3, rarity: '史诗', desc: '飞剑术变成散射3道' },
     
-    // 李逍遥 - 四方剑阵卡牌
-    '剑荡八荒': { skill: '四方剑阵', effect: 'damage', value: 0.3, rarity: '普通', desc: '四方剑阵伤害+30%' },
-    '剑阵加强': { skill: '四方剑阵', effect: 'direction', value: 2, rarity: '稀有', desc: '四方剑阵剑数+2' },
-    '迟滞之阵': { skill: '四方剑阵', effect: 'slow', value: 0.3, rarity: '稀有', desc: '四方剑阵命中减速30%' },
-    '幻剑生花': { skill: '四方剑阵', effect: 'extraDirection', value: 4, rarity: '史诗', desc: '额外向斜45°发射4道' },
+    // 李逍遥 - 御剑术卡牌（普通2，追踪）
+    '剑荡八荒': { skill: '御剑术', effect: 'damage', value: 0.3, rarity: '普通', desc: '御剑术伤害+30%' },
+    '剑影追踪': { skill: '御剑术', effect: 'homingRange', value: 100, rarity: '稀有', desc: '追踪距离+100' },
+    '迟滞之阵': { skill: '御剑术', effect: 'slow', value: 0.3, rarity: '稀有', desc: '命中减速30%' },
+    '穿心一箭': { skill: '御剑术', effect: 'pierce', value: 1, rarity: '史诗', desc: '穿透1个目标' },
     
     // 李逍遥 - 万剑护体卡牌
     '剑锋凌厉': { skill: '万剑护体', effect: 'damage', value: 0.3, rarity: '普通', desc: '万剑护体伤害+30%' },
@@ -247,8 +255,8 @@ const CARD_RARITY_COLORS = {
 
 // 肉鸽卡牌列表（抽卡池）
 const CARDS = {
-    御剑术: ['锋芒毕露', '分光化影', '定身咒', '万剑齐发'],
-    四方剑阵: ['剑荡八荒', '剑阵加强', '迟滞之阵', '幻剑生花'],
+    飞剑术: ['锋芒毕露', '分光化影', '定身咒', '万剑齐发'],
+    御剑术: ['剑荡八荒', '剑影追踪', '迟滞之阵', '穿心一箭'],
     万剑护体: ['剑锋凌厉', '剑域扩张', '剑鸣不绝', '剑气回天'],
     五雷咒: ['雷光普照', '群体治愈', '持续治疗', '雷劫'],
     观音咒: ['金刚护体', '护盾强化', '反射护盾', '水灵护盾'],

@@ -86,7 +86,7 @@ const game = {
     },
     // v2.12.0 技能抽取 - 已解锁技能
     unlockedSkills: {
-        '李逍遥': ['御剑术'],  // 初始只有普通技能1
+        '李逍遥': ['飞剑术'],  // 初始只有普通技能1
         '赵灵儿': ['五雷咒'],
         '阿奴': ['风雪冰天']
     },
@@ -1285,6 +1285,33 @@ function update(dt) {
     
     // 更新投射物
     game.projectiles = game.projectiles.filter(p => {
+        // v2.19.0 御剑术追踪逻辑
+        if (p.isHoming) {
+            // 寻找最近的目标
+            let nearestEnemy = null;
+            let nearestDist = Infinity;
+            game.enemies.forEach(enemy => {
+                if (!enemy.alive) return;
+                const dx = enemy.x - p.x;
+                const dy = enemy.y - p.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < nearestDist) {
+                    nearestDist = dist;
+                    nearestEnemy = enemy;
+                }
+            });
+            
+            // 如果找到目标，更新方向
+            if (nearestEnemy && nearestDist < p.range) {
+                const dx = nearestEnemy.x - p.x;
+                const dy = nearestEnemy.y - p.y;
+                const angle = Math.atan2(dy, dx);
+                const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+                p.vx = Math.cos(angle) * speed;
+                p.vy = Math.sin(angle) * speed;
+            }
+        }
+        
         p.x += p.vx * dt;
         p.y += p.vy * dt;
         p.life -= dt;
