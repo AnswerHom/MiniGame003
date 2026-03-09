@@ -22,6 +22,18 @@ const COLORS = {
 };
 
 // 角色属性
+// 角色颜色配置
+const PLAYER_COLORS = {
+    '李逍遥': '#4169E1',  // 蓝色
+    '赵灵垚': '#FF69B4',  // 粉色
+    '阿奴': '#9370DB'     // 紫色
+};
+
+// 获取角色颜色
+function getCharacterColor(char) {
+    return PLAYER_COLORS[char] || '#666';
+}
+
 const CHARACTERS = {
     李逍遥: {
         name: '李逍遥',
