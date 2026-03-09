@@ -51,11 +51,36 @@ let teamData = {
 
 // 队伍管理器
 const TeamManager = {
-    // 初始化队伍
+    // 初始化队伍（入口函数，初始化并加载数据）
     init() {
         teamData.members = [];
         teamData.formation = TeamConfig.defaultFormation;
         teamData.inBattle = false;
+        this.load();  // 加载保存的数据
+    },
+
+    // 验证并修复队伍成员（只保留已拥有的角色）
+    validateMembers(ownedChars) {
+        // 过滤掉未拥有的角色
+        teamData.members = teamData.members.filter(c => ownedChars.includes(c));
+        
+        // 如果过滤后队伍为空，添加第一个拥有的角色
+        if (teamData.members.length === 0 && ownedChars.length > 0) {
+            teamData.members = [ownedChars[0]];
+        }
+        
+        // 队伍人数限制
+        if (teamData.members.length > TeamConfig.maxMembers) {
+            teamData.members = teamData.members.slice(0, TeamConfig.maxMembers);
+        }
+        
+        this.save();
+    },
+
+    // 设置队伍成员列表
+    setMembers(members) {
+        teamData.members = [...members];
+        this.save();
     },
 
     // 添加成员
@@ -69,6 +94,7 @@ const TeamManager = {
             return false;
         }
         teamData.members.push(characterName);
+        this.save();
         return true;
     },
 
@@ -77,9 +103,24 @@ const TeamManager = {
         const index = teamData.members.indexOf(characterName);
         if (index > -1) {
             teamData.members.splice(index, 1);
+            this.save();
             return true;
         }
         return false;
+    },
+
+    // 切换成员（如果在队伍中则移除，否则添加）
+    toggleMember(characterName) {
+        if (teamData.members.includes(characterName)) {
+            return this.removeMember(characterName);
+        } else {
+            return this.addMember(characterName);
+        }
+    },
+
+    // 检查成员是否在队伍中
+    hasMember(characterName) {
+        return teamData.members.includes(characterName);
     },
 
     // 调整成员顺序
@@ -89,6 +130,7 @@ const TeamManager = {
         
         const member = teamData.members.splice(fromIndex, 1)[0];
         teamData.members.splice(toIndex, 0, member);
+        this.save();
         return true;
     },
 
@@ -96,6 +138,7 @@ const TeamManager = {
     setFormation(formation) {
         if (FORMATIONS[formation]) {
             teamData.formation = formation;
+            this.save();
             return true;
         }
         return false;
@@ -180,5 +223,16 @@ const TeamManager = {
                 console.error('加载队伍数据失败:', e);
             }
         }
+    },
+
+    // 重置队伍（进入大厅时调用）
+    reset(ownedChars) {
+        this.validateMembers(ownedChars);
+    },
+
+    // 进入战斗前准备
+    prepareForBattle() {
+        // 复制队伍数据到 game.team
+        game.team = this.getMembers();
     }
 };

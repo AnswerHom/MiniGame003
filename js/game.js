@@ -135,34 +135,10 @@ function initGame() {
     // 生成障碍物
     generateObstacles();
     
-    // 初始化队伍系统（v2.3.1）
-    TeamManager.init();  // 先初始化
-    TeamManager.load();  // 再加载保存的数据
-    
-    // v2.8.0 修复：清理异常队伍数据（超过5人或为空时重置）
-    let teamMembers = TeamManager.getMembers();
-    if (teamMembers.length > 5 || teamMembers.length === 0) {
-        localStorage.removeItem('paladin_team');
-        TeamManager.init();
-        TeamManager.addMember('李逍遥');
-        TeamManager.save();
-        teamMembers = ['李逍遥'];
-    }
-    
-    // 修复：队伍只能包含已拥有的角色
+    // 初始化队伍系统（v2.3.1）- 使用 TeamManager 统一管理
     const ownedChars = game.gachaState.ownedCharacters;
-    teamMembers = teamMembers.filter(c => ownedChars.includes(c));
-    
-    // 如果过滤后队伍为空，只添加第一个拥有的角色
-    if (teamMembers.length === 0 && ownedChars.length > 0) {
-        teamMembers = [ownedChars[0]];
-    }
-    
-    // 同步到TeamManager
     TeamManager.init();
-    teamMembers.forEach(c => TeamManager.addMember(c));
-    TeamManager.save();
-    
+    TeamManager.validateMembers(ownedChars);
     game.team = TeamManager.getMembers();
     
     // 启动游戏循环
@@ -223,12 +199,18 @@ function handleClick(e) {
         // 检查返回大厅按钮
         if (x >= game.width / 2 - 80 && x <= game.width / 2 + 80 &&
             y >= game.height / 2 + 100 && y <= game.height / 2 + 150) {
+            // 返回大厅时验证队伍
+            TeamManager.reset(game.gachaState.ownedCharacters);
+            game.team = TeamManager.getMembers();
             game.state = 'lobby';
         }
     } else if (game.state === 'victory') {
         // 检查返回大厅按钮
         if (x >= game.width / 2 - 80 && x <= game.width / 2 + 80 &&
             y >= game.height / 2 + 100 && y <= game.height / 2 + 150) {
+            // 返回大厅时验证队伍
+            TeamManager.reset(game.gachaState.ownedCharacters);
+            game.team = TeamManager.getMembers();
             game.state = 'lobby';
         }
     } else if (game.state === 'playing') {
@@ -711,10 +693,10 @@ function drawLobby() {
     
     ctx.textAlign = 'center';
     
-    // 队伍显示
+    // 队伍显示 - 使用 TeamManager
     ctx.fillStyle = '#fff';
     ctx.font = '18px Microsoft YaHei';
-    ctx.fillText('当前队伍 (' + game.team.length + '/5)', game.width / 2, 140);
+    ctx.fillText('当前队伍 (' + TeamManager.getMemberCount() + '/5)', game.width / 2, 140);
     
     // 绘制已拥有角色（可点击选择）
     const charList = CHARACTER_LIST;
@@ -724,7 +706,7 @@ function drawLobby() {
         const x = teamStartX + i * 120;
         const y = 200;
         const owned = game.gachaState.ownedCharacters.includes(char);
-        const inTeam = game.team.includes(char);
+        const inTeam = TeamManager.hasMember(char);
         
         // 角色框
         ctx.fillStyle = owned ? getCharacterColor(char) : '#333';
@@ -872,30 +854,14 @@ function selectCharacter(x, y) {
             y >= charY - 30 && y <= charY + 50) {
             // 检查是否已拥有该角色
             if (game.gachaState.ownedCharacters.includes(char)) {
-                if (game.team.includes(char)) {
-                    // 已在队伍中，移除
-                    const idx = game.team.indexOf(char);
-                    if (idx > -1) {
-                        game.team.splice(idx, 1);
-                        TeamManager.removeMember(char);
-                        teamChanged = true;
-                    }
-                } else {
-                    // 未在队伍中，添加（最多5人）
-                    if (game.team.length < 5) {
-                        game.team.push(char);
-                        TeamManager.addMember(char);
-                        teamChanged = true;
-                    }
-                }
+                // 使用 TeamManager 切换成员
+                teamChanged = TeamManager.toggleMember(char);
             }
         }
     });
     
-    // 如果队伍变化，保存并同步
-    if (teamChanged) {
-        TeamManager.save();
-    }
+    // 同步 game.team
+    game.team = TeamManager.getMembers();
     
     // 检查单抽按钮
     if (x >= game.width / 2 - 200 && x <= game.width / 2 - 40 &&
