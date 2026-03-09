@@ -78,8 +78,11 @@ function generateCardOptions() {
                 teamCards.push(cardName);
             }
         }
-        // 也包含通用卡牌
-        if (cardData.skill === '通用' || cardData.skill === '功能') {
+        // v2.12.0 修复：功能卡只对赵灵师可见，通用卡对所有角色可见
+        if (cardData.skill === '通用') {
+            teamCards.push(cardName);
+        }
+        if (cardData.skill === '功能' && actualTeamMembers.includes('赵灵垚')) {
             teamCards.push(cardName);
         }
     }
@@ -140,7 +143,11 @@ function battleDrawCard() {
                 teamCards.push(cardName);
             }
         }
-        if (cardData.skill === '通用' || cardData.skill === '功能') {
+        // v2.12.0 修复：功能卡只对赵灵师可见，通用卡对所有角色可见
+        if (cardData.skill === '通用') {
+            teamCards.push(cardName);
+        }
+        if (cardData.skill === '功能' && actualTeamMembers.includes('赵灵儿')) {
             teamCards.push(cardName);
         }
     }
