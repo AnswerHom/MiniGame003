@@ -137,6 +137,10 @@ const SkillManager = {
             if (dist <= skill.radius) {
                 // 造成伤害
                 enemy.hp -= damage;
+                // v2.13.0 伤害飘字
+                if (enemy.hp > 0) {
+                    addFloatingText(enemy.x, enemy.y - 20, Math.floor(damage), '#fff', 14);
+                }
                 if (enemy.hp <= 0) {
                     enemy.alive = false;
                     game.gold += enemy.exp;

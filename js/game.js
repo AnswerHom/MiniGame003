@@ -66,6 +66,8 @@ const game = {
     enemies: [],
     projectiles: [],
     effects: [],
+    // v2.13.0 飘字系统
+    floatingTexts: [],
     // 地图系统
     currentRegion: '仙剑岛',
     regions: JSON.parse(JSON.stringify(MAP_REGIONS)),
@@ -422,6 +424,9 @@ function usePlayerSkill(player, skillName) {
             }
             break;
     }
+    
+    // v2.13.0 技能名字飘字
+    addFloatingText(player.x, player.y - 30, skillName, '#fff', 18);
 }
 
 // 激活万剑护体
@@ -936,6 +941,47 @@ function startGame() {
     game.lastTime = performance.now();
 }
 
+// v2.13.0 飘字系统
+// 添加飘字
+function addFloatingText(x, y, text, color, size = 16, isCrit = false) {
+    game.floatingTexts.push({
+        x: x,
+        y: y,
+        text: text,
+        color: color,
+        size: size,
+        life: isCrit ? 0.8 : 1.0,  // 伤害飘字0.8秒，技能名1秒
+        maxLife: isCrit ? 0.8 : 1.0,
+        isCrit: isCrit,
+        vy: -30  // 上升速度
+    });
+}
+
+// 更新飘字
+function updateFloatingTexts(dt) {
+    game.floatingTexts = game.floatingTexts.filter(ft => {
+        ft.life -= dt;
+        ft.y += ft.vy * dt;
+        return ft.life > 0;
+    });
+}
+
+// 绘制飘字
+function drawFloatingTexts() {
+    const ctx = game.ctx;
+    
+    game.floatingTexts.forEach(ft => {
+        const alpha = ft.life / ft.maxLife;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = ft.color;
+        ctx.font = `bold ${ft.size}px Microsoft YaHei`;
+        ctx.textAlign = 'center';
+        ctx.fillText(ft.text, ft.x - game.camera.x + game.width / 2, ft.y - game.camera.y + game.height / 2);
+    });
+    
+    ctx.globalAlpha = 1.0;
+}
+
 // 抽卡函数
 function drawGacha(count) {
     const cost = count === 1 ? 20 : 180;
@@ -1143,6 +1189,9 @@ function updateCamera(dt) {
 }
 
 function update(dt) {
+    // 更新飘字
+    updateFloatingTexts(dt);
+    
     // 更新摄像机跟随
     updateCamera(dt);
     
@@ -1240,6 +1289,10 @@ function update(dt) {
                         // 50%攻击力/秒的伤害
                         const damage = player.attack * 0.5 * dt;
                         enemy.hp -= damage;
+                        // v2.13.0 伤害飘字
+                        if (enemy.hp > 0) {
+                            addFloatingText(enemy.x, enemy.y - 20, Math.floor(damage), '#fff', 14);
+                        }
                         if (enemy.hp <= 0) {
                             enemy.alive = false;
                             game.gold += enemy.exp;
@@ -1365,6 +1418,12 @@ function update(dt) {
             
             if (dist < enemy.size) {
                 enemy.hp -= p.damage;
+                // v2.13.0 伤害飘字
+                if (enemy.hp > 0) {
+                    const color = p.isCrit ? '#ffd700' : '#fff';
+                    const size = p.isCrit ? 18 : 14;
+                    addFloatingText(enemy.x, enemy.y - 20, Math.floor(p.damage), color, size, p.isCrit);
+                }
                 if (enemy.hp <= 0) {
                     enemy.alive = false;
                     game.gold += enemy.exp;
@@ -1791,6 +1850,10 @@ function renderEffects() {
                             const dist = Math.sqrt(dx * dx + dy * dy);
                             if (dist < effect.radius) {
                                 enemy.hp -= effect.damage;
+                                // v2.13.0 伤害飘字
+                                if (enemy.hp > 0) {
+                                    addFloatingText(enemy.x, enemy.y - 20, Math.floor(effect.damage), '#fff', 14);
+                                }
                                 if (enemy.hp <= 0) {
                                     enemy.alive = false;
                                     game.gold += enemy.exp;
@@ -2127,6 +2190,9 @@ function render() {
     
     // 绘制特效
     renderEffects();
+    
+    // 绘制飘字（随摄像机移动）
+    drawFloatingTexts();
     
     // 恢复摄像机偏移（UI不随摄像机移动）
     ctx.restore();
