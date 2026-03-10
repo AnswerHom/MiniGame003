@@ -61,6 +61,7 @@ function drawBattleRogue() {
     
     if (battleRogueState.showResult && battleRogueState.selectedCard) {
         // 显示抽卡结果 - 大气展示
+        ctx.save();
         ctx.fillStyle = '#ffd700';
         ctx.font = 'bold 48px Microsoft YaHei';
         ctx.textAlign = 'center';
@@ -71,6 +72,7 @@ function drawBattleRogue() {
         
         ctx.font = 'bold 36px Microsoft YaHei';
         ctx.fillText(battleRogueState.selectedCard, game.width / 2, game.height / 2 + 20);
+        ctx.restore();
         return;
     }
     
