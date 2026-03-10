@@ -1121,6 +1121,8 @@ function createPlayer(characterName) {
         lastAttack: 0,
         alive: true,
         shield: 0,
+        // v2.23.1 肉鸽卡牌效果
+        cardEffects: {},
         // 受伤方法
         takeDamage: function(damage) {
             let actualDamage = damage;
@@ -1154,8 +1156,8 @@ function applyCardEffects() {
     
     // 为每个玩家应用卡牌效果
     game.players.forEach(player => {
-        // 初始化技能效果存储
-        if (!player.cardEffects) player.cardEffects = {};
+        // v2.24.0 先清空现有效果，避免累加
+        player.cardEffects = {};
         
         game.playerCards.forEach(cardName => {
             const cardData = CARD_DATA[cardName];
