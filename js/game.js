@@ -2016,20 +2016,20 @@ function enemyAttack(enemy, target) {
 }
 
 // 渲染特效
-// 绘制地面纹理
-function drawGroundTexture() {
-    const ctx = game.ctx;
-    
-    // 简化的纹理效果
-    for (let i = 0; i < 50; i++) {
-        const x = (i * 73) % game.width;
-        const y = (i * 47) % game.height;
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
-        ctx.beginPath();
-        ctx.arc(x, y, 20 + (i % 10), 0, Math.PI * 2);
-        ctx.fill();
-    }
-}
+// 绘制地面纹理（已禁用 - 导致地图白色覆盖）
+// function drawGroundTexture() {
+//     const ctx = game.ctx;
+//     
+//     // 简化的纹理效果
+//     for (let i = 0; i < 50; i++) {
+//         const x = (i * 73) % game.width;
+//         const y = (i * 47) % game.height;
+//         ctx.fillStyle = 'rgba(255, 255, 255, 0.02)';
+//         ctx.beginPath();
+//         ctx.arc(x, y, 20 + (i % 10), 0, Math.PI * 2);
+//         ctx.fill();
+//     }
+// }
 
 // 绘制边界
 function drawBoundaries() {
@@ -2292,8 +2292,8 @@ function render() {
     ctx.fillStyle = region.background;
     ctx.fillRect(0, 0, game.worldWidth, game.worldHeight);
     
-    // 绘制地面纹理（简化版）
-    drawGroundTexture();
+    // 绘制地面纹理（已禁用）
+    // drawGroundTexture();
     
     // 绘制边界
     drawBoundaries();
