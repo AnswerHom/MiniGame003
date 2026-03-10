@@ -35,31 +35,31 @@ const SkillManager = {
     
     // 攻击技能
     useAttackSkill(skill, caster, targets) {
-        // v2.20.0 应用卡牌伤害加成
-        const cardBonus = caster.cardDamageBonus || 0;
-        const damage = caster.attack * skill.damagePercent * (1 + cardBonus);
+        // v2.21.0 获取该技能的卡牌加成（只对指定技能生效）
+        const skillEffects = caster.cardEffects ? caster.cardEffects[skill.name] : null;
         
-        // v2.20.0 应用卡牌投射物数量和散射效果
-        const cardProjectileCount = caster.cardProjectileCount || 0;
-        const cardSpread = caster.cardSpread || 0;
+        // 伤害加成
+        const cardDamageBonus = skillEffects && skillEffects.damage ? skillEffects.damage : 0;
+        const damage = caster.attack * skill.damagePercent * (1 + cardDamageBonus);
+        
+        // 投射物数量和散射效果
+        const cardProjectileCount = skillEffects && skillEffects.projectileCount ? skillEffects.projectileCount : 0;
+        const cardSpread = skillEffects && skillEffects.spread ? skillEffects.spread : 0;
         const projectileCount = Math.max(1, (skill.projectileCount || 1) + cardProjectileCount);
         
         // v2.19.0 判断技能类型
         const isLiXiaoyao = caster.name === '李逍遥';
         const isHoming = skill.type === 'homing';  // 御剑术追踪
         
-        // v2.20.0 应用卡牌范围加成
-        const cardRange = caster.cardRange || 0;
+        // 范围加成
+        const cardRange = skillEffects && skillEffects.range ? skillEffects.range : 0;
         const range = skill.range * (1 + cardRange);
         
-        // v2.20.0 应用卡牌穿透加成
-        const cardPierce = caster.cardPierce || 0;
+        // 穿透加成
+        const cardPierce = skillEffects && skillEffects.pierce ? skillEffects.pierce : 0;
         
-        // v2.20.0 应用卡牌定身效果
-        const cardStun = caster.cardStun || 0;
-        
-        // v2.20.0 连续发射（分光化影）- 只对指定技能生效
-        const rapidFireInterval = (caster.cardRapidFire && caster.cardRapidFire[skill.name]) || 0;
+        // 定身效果
+        const cardStun = skillEffects && skillEffects.stun ? skillEffects.stun : 0;
         
         // 单体攻击或散射
         const target = targets[0];
