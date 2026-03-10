@@ -38,6 +38,9 @@ function drawBattleRogue() {
     
     const ctx = game.ctx;
     
+    // 保存 Canvas 状态
+    ctx.save();
+    
     // v2.14.0 背景氛围 - 渐变遮罩
     const gradient = ctx.createRadialGradient(game.width/2, game.height/2, 0, game.width/2, game.height/2, game.width/2);
     gradient.addColorStop(0, 'rgba(30, 30, 60, 0.85)');
@@ -46,7 +49,6 @@ function drawBattleRogue() {
     ctx.fillRect(0, 0, game.width, game.height);
     
     // 背景光效
-    ctx.save();
     ctx.globalAlpha = 0.1;
     for (let i = 0; i < 3; i++) {
         const glowX = game.width/2 + Math.sin(Date.now()/1000 + i) * 100;
@@ -57,11 +59,10 @@ function drawBattleRogue() {
         ctx.fillStyle = glow;
         ctx.fillRect(0, 0, game.width, game.height);
     }
-    ctx.restore();
+    ctx.globalAlpha = 1.0;
     
     if (battleRogueState.showResult && battleRogueState.selectedCard) {
         // 显示抽卡结果 - 大气展示
-        ctx.save();  // 保存当前状态
         ctx.fillStyle = '#ffd700';
         ctx.font = 'bold 48px Microsoft YaHei';
         ctx.textAlign = 'center';
@@ -72,7 +73,9 @@ function drawBattleRogue() {
         
         ctx.font = 'bold 36px Microsoft YaHei';
         ctx.fillText(battleRogueState.selectedCard, game.width / 2, game.height / 2 + 20);
-        ctx.restore();  // 恢复之前的状态
+        
+        // 恢复 Canvas 状态
+        ctx.restore();
         return;
     }
     
@@ -204,4 +207,7 @@ function drawBattleRogue() {
     
     ctx.fillStyle = '#fff';
     ctx.fillText('🔄 刷新 ' + battleRogueState.refreshCost + '💰', refreshBtnX + btnWidth / 2, drawBtnY + 32);
+    
+    // 恢复 Canvas 状态
+    ctx.restore();
 }
