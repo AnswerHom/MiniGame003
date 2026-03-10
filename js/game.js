@@ -1115,6 +1115,60 @@ function applyCardEffects() {
     });
 }
 
+// 应用单张卡牌效果到玩家（战斗中选择卡牌时立即应用）
+function applySingleCardEffect(player, cardName) {
+    const cardData = CARD_DATA[cardName];
+    if (!cardData) return;
+    
+    const effect = cardData.effect;
+    const value = cardData.value;
+    
+    switch (effect) {
+        case 'damage':
+            player.cardDamageBonus = (player.cardDamageBonus || 0) + value;
+            break;
+        case 'attackSpeed':
+            player.attackSpeed = player.attackSpeed * (1 + value);
+            break;
+        case 'moveSpeed':
+            player.moveSpeed = player.moveSpeed + value;
+            break;
+        case 'critRate':
+            player.critRate = (player.critRate || 0) + value;
+            break;
+        case 'critDamage':
+            player.critDamage = (player.critDamage || 0) + value;
+            break;
+        case 'damageReduction':
+            player.damageReduction = (player.damageReduction || 0) + value;
+            break;
+        case 'heal':
+            player.healBonus = (player.healBonus || 0) + value;
+            break;
+        case 'shield':
+            player.cardShieldBonus = (player.cardShieldBonus || 0) + value;
+            break;
+        case 'projectileCount':
+            player.cardProjectileCount = (player.cardProjectileCount || 0) + value;
+            break;
+        case 'spread':
+            player.cardSpread = (player.cardSpread || 0) + value;
+            break;
+        case 'stun':
+            player.cardStun = (player.cardStun || 0) + value;
+            break;
+        case 'pierce':
+            player.cardPierce = (player.cardPierce || 0) + value;
+            break;
+        case 'range':
+            player.cardRange = (player.cardRange || 0) + value;
+            break;
+        case 'duration':
+            player.cardDuration = (player.cardDuration || 0) + value;
+            break;
+    }
+}
+
 // 移动玩家
 function movePlayer(x, y) {
     if (game.players.length > 0 && game.players[0].alive) {

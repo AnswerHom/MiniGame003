@@ -257,6 +257,14 @@ function handleBattleRogueClick(x, y) {
                 if (!game.playerCards.includes(cardName)) {
                     game.playerCards.push(cardName);
                 }
+                
+                // v2.21.0 立即应用卡牌效果到当前战斗中的玩家
+                if (game.players) {
+                    game.players.forEach(player => {
+                        applySingleCardEffect(player, cardName);
+                    });
+                }
+                
                 battleRogueState.selectedCard = cardName;
             }
             
