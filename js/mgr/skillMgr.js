@@ -10,6 +10,7 @@ const SkillManager = {
         switch (skill.type) {
             case 'attack':
             case 'aoe':
+            case 'meteors':
                 this.useAttackSkill(skill, caster, targets);
                 break;
             case 'fan':
@@ -49,6 +50,7 @@ const SkillManager = {
         // v2.19.0 判断技能类型
         const isLiXiaoyao = caster.name === '李逍遥';
         const isHoming = skill.type === 'homing';  // 御剑术追踪
+        const isMeteors = skill.type === 'meteors';  // v2.27.0 万剑诀
         
         // v2.20.0 应用卡牌范围加成
         const cardRange = skillEffects.range || 0;
@@ -59,6 +61,42 @@ const SkillManager = {
         
         // v2.20.0 应用卡牌定身效果
         const cardStun = skillEffects.stun || 0;
+        
+        // v2.27.0 万剑诀：5把飞剑斜向下砸
+        if (isMeteors) {
+            const meteorCount = (skill.meteorCount || 5) + cardProjectileCount;
+            const meteorRange = range;
+            // 目标位置
+            const targetX = target.x;
+            const targetY = target.y;
+            
+            // 生成多把飞剑，从上方砸向目标
+            for (let i = 0; i < meteorCount; i++) {
+                // 计算飞剑的起始位置（在目标上方随机分布）
+                const angle = -Math.PI / 2 + (Math.random() - 0.5) * 0.5; // 斜向下
+                const startX = targetX + (Math.random() - 0.5) * meteorRange * 2;
+                const startY = targetY - 200 - Math.random() * 100;
+                
+                // 飞剑速度（向下砸）
+                const speed = 600;
+                const vx = (targetX - startX) / 0.5 * 0.3;
+                const vy = speed;
+                
+                // v2.27.0 创建陨石/飞剑效果
+                createMeteorProjectile(caster, startX, startY, vx, vy, damage, range, {
+                    isSword: true,
+                    isGold: true,
+                    length: 50,
+                    width: 12,
+                    swordColor: '#FFD700',
+                    isMeteor: true,
+                    stunDuration: cardStun,
+                    slowDuration: skillEffects.slow ? 3 : 0,
+                    slowAmount: skillEffects.slow || 0
+                });
+            }
+            return;
+        }
         
         // 单体攻击或散射
         const target = targets[0];
@@ -378,6 +416,36 @@ function createProjectileAt(caster, startX, startY, angle, damage, range, option
         canPassObstacle: options.canPassObstacle || false,
         // v2.25.1 御剑术穿透记录
         hitEnemies: [],
+    });
+}
+
+// v2.27.0 创建万剑诀陨石/飞剑投射物
+function createMeteorProjectile(caster, startX, startY, vx, vy, damage, range, options = {}) {
+    const speed = Math.sqrt(vx * vx + vy * vy);
+    const life = range / speed;
+    
+    game.projectiles.push({
+        x: startX,
+        y: startY,
+        vx: vx,
+        vy: vy,
+        damage: damage,
+        isCrit: Math.random() < caster.critRate,
+        life: life,
+        range: range,
+        type: 'meteor',
+        angle: Math.atan2(vy, vx),
+        isSword: options.isSword || false,
+        isGold: options.isGold || false,
+        length: options.length || 50,
+        width: options.width || 12,
+        swordColor: options.swordColor || '#FFD700',
+        // v2.27.0 万剑诀属性
+        isMeteor: true,
+        stunDuration: options.stunDuration || 0,
+        slowDuration: options.slowDuration || 0,
+        slowAmount: options.slowAmount || 0,
+        hitEnemies: []
     });
 }
 

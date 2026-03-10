@@ -94,14 +94,15 @@ const SKILLS = {
         cooldown: 2.0,
         description: '金色飞剑自动追踪最近敌人，全屏飞行'
     },
-    万剑护体: {
-        name: '万剑护体',
-        type: 'aoe',
-        damagePercent: 0.5,
-        range: 100,
-        cooldown: 30,
-        duration: 10,
-        description: '剑环绕旋转，敌靠近受伤'
+    // v2.27.0 万剑诀
+    万剑诀: {
+        name: '万剑诀',
+        type: 'meteors',  // 陨石/剑雨类型
+        damagePercent: 2.0,
+        range: 150,
+        cooldown: 60,
+        meteorCount: 5,
+        description: '5把飞剑斜向下砸向目标区域，范围伤害'
     },
     五雷咒: {
         name: '五雷咒',
@@ -173,11 +174,11 @@ const CARD_DATA = {
     '迟滞之阵': { skill: '御剑术', effect: 'slow', value: 0.3, rarity: '稀有', desc: '命中减速30%' },
     '穿心一箭': { skill: '御剑术', effect: 'pierce', value: 1, rarity: '史诗', desc: '穿透1个目标' },
     
-    // 李逍遥 - 万剑护体卡牌
-    '剑锋凌厉': { skill: '万剑护体', effect: 'damage', value: 0.3, rarity: '普通', desc: '万剑护体伤害+30%' },
-    '剑域扩张': { skill: '万剑护体', effect: 'range', value: 30, rarity: '稀有', desc: '万剑护体半径+30px' },
-    '剑鸣不绝': { skill: '万剑护体', effect: 'duration', value: 5, rarity: '史诗', desc: '持续时间+5秒' },
-    '剑气回天': { skill: '万剑护体', effect: 'regen', value: 0.01, rarity: '传说', desc: '期间每秒回复1%生命' },
+    // 李逍遥 - 万剑诀卡牌
+    '万剑齐发': { skill: '万剑诀', effect: 'projectileCount', value: 3, rarity: '普通', desc: '万剑诀飞剑数量+3' },
+    '剑雨滂沱': { skill: '万剑诀', effect: 'range', value: 0.5, rarity: '稀有', desc: '万剑诀范围+50%' },
+    '锋芒毕露': { skill: '万剑诀', effect: 'damage', value: 0.3, rarity: '稀有', desc: '万剑诀伤害+30%' },
+    '震颤大地': { skill: '万剑诀', effect: 'slow', value: 0.3, duration: 3, rarity: '史诗', desc: '万剑诀命中减速30%，持续3秒' },
     
     // 赵灵儿 - 五雷咒卡牌
     '雷光普照': { skill: '五雷咒', effect: 'heal', value: 0.3, rarity: '普通', desc: '治疗量+30%' },
@@ -217,7 +218,7 @@ const CARD_DATA = {
     
     // v2.12.0 技能抽取 - 技能卡（抽到后装备到角色）
     '御剑术': { skill: '御剑术', effect: 'equipSkill', rarity: '普通', desc: '装备技能：御剑术', char: '李逍遥' },
-    '万剑护体': { skill: '万剑护体', effect: 'equipSkill', rarity: '史诗', desc: '装备技能：万剑护体', char: '李逍遥' },
+    '万剑诀': { skill: '万剑诀', effect: 'equipSkill', rarity: '史诗', desc: '装备技能：万剑诀', char: '李逍遥' },
     '观音咒': { skill: '观音咒', effect: 'equipSkill', rarity: '稀有', desc: '装备技能：观音咒', char: '赵灵儿' },
     '圣灵复活': { skill: '圣灵复活', effect: 'equipSkill', rarity: '史诗', desc: '装备技能：圣灵复活', char: '赵灵儿' },
     '雷劫': { skill: '雷劫', effect: 'equipSkill', rarity: '稀有', desc: '装备技能：雷劫', char: '阿奴' },
@@ -236,7 +237,7 @@ const CARD_RARITY_COLORS = {
 const CARDS = {
     飞剑术: ['锋芒毕露', '分光化影', '定身咒', '万剑齐发'],
     御剑术: ['剑荡八荒', '剑影追踪', '迟滞之阵', '穿心一箭'],
-    万剑护体: ['剑锋凌厉', '剑域扩张', '剑鸣不绝', '剑气回天'],
+    万剑诀: ['万剑齐发', '剑雨滂沱', '锋芒毕露', '震颤大地'],
     五雷咒: ['雷光普照', '群体治愈', '持续治疗', '雷劫'],
     观音咒: ['金刚护体', '护盾强化', '反射护盾', '水灵护盾'],
     圣灵复活: ['复活祝福', '群体复活', '快速复活', '复活传承'],

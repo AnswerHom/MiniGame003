@@ -1721,6 +1721,31 @@ function update(dt) {
                     enemy.slowAmount = p.slowAmount;
                 }
                 
+                // v2.27.0 万剑诀范围伤害
+                if (p.isMeteor) {
+                    // 造成范围伤害
+                    const aoeRange = 80;
+                    game.enemies.forEach(e => {
+                        if (!e.alive) return;
+                        const dx = e.x - enemy.x;
+                        const dy = e.y - enemy.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < aoeRange) {
+                            e.hp -= p.damage * 0.5; // 范围伤害为50%
+                            addFloatingText(e.x, e.y - 20, Math.floor(p.damage * 0.5), '#ffd700', 14);
+                            if (e.hp <= 0) {
+                                e.alive = false;
+                                game.gold += e.exp;
+                            }
+                            // 减速效果
+                            if (p.slowDuration > 0) {
+                                e.slowTimer = p.slowDuration;
+                                e.slowAmount = p.slowAmount;
+                            }
+                        }
+                    });
+                }
+                
                 // v2.20.0 定身效果
                 if (p.stunDuration > 0) {
                     enemy.stunTimer = p.stunDuration;
