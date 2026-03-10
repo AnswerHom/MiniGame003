@@ -1109,11 +1109,6 @@ function applyCardEffects() {
                     // 持续时间加成
                     player.cardDuration = (player.cardDuration || 0) + value;
                     break;
-                case 'rapidFire':
-                    // 连续发射（分光化影）- 只对指定技能生效
-                    if (!player.cardRapidFire) player.cardRapidFire = {};
-                    player.cardRapidFire[cardData.skill] = value;
-                    break;
                 // 其他效果可以继续扩展
             }
         });

@@ -163,7 +163,7 @@ const SKILLS = {
 const CARD_DATA = {
     // 李逍遥 - 飞剑术卡牌（普通1）
     '锋芒毕露': { skill: '飞剑术', effect: 'damage', value: 0.2, rarity: '普通', desc: '飞剑术伤害+20%' },
-    '分光化影': { skill: '飞剑术', effect: 'rapidFire', value: 0.8, rarity: '稀有', desc: '飞剑术连续发射，间隔0.8秒' },
+    '分光化影': { skill: '飞剑术', effect: 'projectileCount', value: 1, rarity: '稀有', desc: '飞剑术发射数量+1' },
     '定身咒': { skill: '飞剑术', effect: 'stun', value: 1, rarity: '稀有', desc: '飞剑术命中目标定身1秒' },
     '万剑齐发': { skill: '飞剑术', effect: 'spread', value: 3, rarity: '史诗', desc: '飞剑术变成散射3道' },
     

@@ -58,9 +58,6 @@ const SkillManager = {
         // v2.20.0 应用卡牌定身效果
         const cardStun = caster.cardStun || 0;
         
-        // v2.20.0 连续发射（分光化影）- 只对指定技能生效
-        const rapidFireInterval = (caster.cardRapidFire && caster.cardRapidFire[skill.name]) || 0;
-        
         // 单体攻击或散射
         const target = targets[0];
         if (target) {
@@ -104,28 +101,6 @@ const SkillManager = {
                     stunDuration: cardStun,
                     canPassObstacle: isHoming  // v2.21.0 御剑术穿越障碍物
                 });
-                
-                // v2.20.0 分光化影：连续发射后续子弹（只对指定技能生效）
-                if (rapidFireInterval > 0) {
-                    const rapidFireCount = 2; // 分光化影再发射2发
-                    for (let i = 1; i <= rapidFireCount; i++) {
-                        setTimeout(() => {
-                            if (caster && caster.alive) {
-                                createProjectile(caster, baseAngle, damage, range, {
-                                    isSword: isLiXiaoyao || isHoming,
-                                    isGold: isGoldSword,
-                                    length: 60,
-                                    width: 10,
-                                    swordColor: isGoldSword ? '#FFD700' : '#3182ce',
-                                    isHoming: isHoming,
-                                    pierce: cardPierce,
-                                    stunDuration: cardStun,
-                                    canPassObstacle: isHoming
-                                });
-                            }
-                        }, rapidFireInterval * 1000 * i);
-                    }
-                }
             }
         }
     },
