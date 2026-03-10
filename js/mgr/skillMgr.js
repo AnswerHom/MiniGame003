@@ -341,6 +341,8 @@ function createProjectile(caster, angle, damage, range, options = {}) {
         isGold: options.isGold || false,
         length: options.length || 30,
         width: options.width || 8,
+        // v2.25.1 御剑术穿透记录
+        hitEnemies: [],
         swordColor: options.swordColor || '#3182ce',  // v2.5.0 剑颜色
         // v2.20.0 卡牌效果
         pierce: options.pierce || 0,
@@ -373,7 +375,9 @@ function createProjectileAt(caster, startX, startY, angle, damage, range, option
         swordColor: options.swordColor || '#3182ce',
         pierce: options.pierce || 0,
         stunDuration: options.stunDuration || 0,
-        canPassObstacle: options.canPassObstacle || false
+        canPassObstacle: options.canPassObstacle || false,
+        // v2.25.1 御剑术穿透记录
+        hitEnemies: [],
     });
 }
 
