@@ -155,6 +155,11 @@ function initGame() {
     game.canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
     game.canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
     game.canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+    
+    // PC端鼠标事件 - 虚拟摇杆
+    game.canvas.addEventListener('mousedown', handleMouseDown);
+    game.canvas.addEventListener('mousemove', handleMouseMove);
+    game.canvas.addEventListener('mouseup', handleMouseUp);
 }
 
 // 调整画布大小
@@ -392,6 +397,101 @@ function handleTouchEnd(e) {
             game.joystick.touchId = null;
             break;
         }
+    }
+}
+
+// PC端鼠标按下 - 虚拟摇杆
+function handleMouseDown(e) {
+    if (game.state !== 'playing') return;
+    
+    const rect = game.canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // 如果肉鸽界面已打开，鼠标用于选择卡牌
+    if (battleRogueState.active) {
+        handleBattleRogueClick(x, y);
+        return;
+    }
+    
+    // 检查是否点击了UI按钮区域
+    // 肉鸽按钮在右下角
+    if (game.battleRogueBtn) {
+        const btn = game.battleRogueBtn;
+        if (x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) {
+            // 点击了肉鸽按钮，检查费用并打开界面
+            if (game.gold >= battleRogueState.clickCost) {
+                game.gold -= battleRogueState.clickCost;
+                const oldClickCost = battleRogueState.clickCost;
+                battleRogueState.clickCost = battleRogueState.clickCost + battleRogueState.lastClickCost;
+                battleRogueState.lastClickCost = oldClickCost;
+                openBattleRogue();
+            }
+            return;
+        }
+    }
+    
+    // 避免在右上角小地图区域激活摇杆
+    const mapSize = 120;
+    const mapX = game.width - mapSize - 10;
+    const mapY = 10;
+    if (x >= mapX && x <= mapX + mapSize && y >= mapY && y <= mapY + mapSize) {
+        return;
+    }
+    
+    // 避免在左上角UI区域激活摇杆
+    if (x < 150 && y < 100) {
+        return;
+    }
+    
+    // 任意位置激活摇杆
+    game.joystick.active = true;
+    game.joystick.visible = true;
+    game.joystick.originX = x;
+    game.joystick.originY = y;
+    game.joystick.currentX = x;
+    game.joystick.currentY = y;
+    game.joystick.mouseDown = true;
+}
+
+// PC端鼠标移动 - 虚拟摇杆
+function handleMouseMove(e) {
+    if (battleRogueState.active || !game.joystick.active || !game.joystick.mouseDown) return;
+    
+    const rect = game.canvas.getBoundingClientRect();
+    let x = e.clientX - rect.left;
+    let y = e.clientY - rect.top;
+    
+    // 限制摇杆范围
+    const maxDist = 50;
+    const dx = x - game.joystick.originX;
+    const dy = y - game.joystick.originY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    if (dist > maxDist) {
+        x = game.joystick.originX + (dx / dist) * maxDist;
+        y = game.joystick.originY + (dy / dist) * maxDist;
+    }
+    
+    game.joystick.currentX = x;
+    game.joystick.currentY = y;
+    
+    // 更新玩家目标位置
+    const player = game.players[0];
+    if (player && player.alive) {
+        player.targetX = player.x + (x - game.joystick.originX) * 3;
+        player.targetY = player.y + (y - game.joystick.originY) * 3;
+    }
+}
+
+// PC端鼠标松开 - 虚拟摇杆
+function handleMouseUp(e) {
+    if (battleRogueState.active) return;
+    
+    if (game.joystick.mouseDown) {
+        game.joystick.active = false;
+        game.joystick.visible = false;
+        game.joystick.mouseDown = false;
     }
 }
 
