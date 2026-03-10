@@ -64,6 +64,8 @@ const SkillManager = {
         
         // v2.27.0 万剑诀：5把飞剑斜向下砸
         if (isMeteors) {
+            if (!target) return;  // 没有目标不释放
+            
             const meteorCount = (skill.meteorCount || 5) + cardProjectileCount;
             const meteorRange = range;
             // 目标位置
