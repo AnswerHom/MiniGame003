@@ -95,7 +95,8 @@ const SkillManager = {
                     isMeteor: true,
                     stunDuration: cardStun,
                     slowDuration: skillEffects.slow ? 3 : 0,
-                    slowAmount: skillEffects.slow || 0
+                    slowAmount: skillEffects.slow || 0,
+                    canPassObstacle: true  // v2.28.0 万剑诀无视障碍物
                 });
             }
             return;
