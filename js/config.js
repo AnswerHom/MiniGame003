@@ -228,6 +228,7 @@ const CARD_DATA = {
     '灵泉涌现': { skill: '功能', effect: 'healRange', value: 30, rarity: '稀有', desc: '五雷咒范围+30px' },
     
     // v2.12.0 技能抽取 - 技能卡（抽到后装备到角色）
+    '御剑术': { skill: '御剑术', effect: 'equipSkill', rarity: '普通', desc: '装备技能：御剑术', char: '李逍遥' },
     '万剑护体': { skill: '万剑护体', effect: 'equipSkill', rarity: '史诗', desc: '装备技能：万剑护体', char: '李逍遥' },
     '观音咒': { skill: '观音咒', effect: 'equipSkill', rarity: '稀有', desc: '装备技能：观音咒', char: '赵灵儿' },
     '圣灵复活': { skill: '圣灵复活', effect: 'equipSkill', rarity: '史诗', desc: '装备技能：圣灵复活', char: '赵灵儿' },
