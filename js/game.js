@@ -1044,6 +1044,9 @@ function applyCardEffects() {
     
     // 为每个玩家应用卡牌效果
     game.players.forEach(player => {
+        // 初始化技能效果存储
+        if (!player.cardEffects) player.cardEffects = {};
+        
         game.playerCards.forEach(cardName => {
             const cardData = CARD_DATA[cardName];
             if (!cardData) return;
@@ -1051,63 +1054,89 @@ function applyCardEffects() {
             // 根据卡牌效果类型应用属性修改
             const effect = cardData.effect;
             const value = cardData.value;
+            const skillName = cardData.skill;  // 效果只对指定技能生效
+            
+            // 跳过 equipSkill（装备技能不是增幅效果）
+            if (effect === 'equipSkill') return;
+            
+            // 初始化该技能的效果对象
+            if (!player.cardEffects[skillName]) {
+                player.cardEffects[skillName] = {
+                    damageBonus: 0,
+                    attackSpeed: 1,
+                    moveSpeed: 0,
+                    critRate: 0,
+                    critDamage: 0,
+                    damageReduction: 0,
+                    healBonus: 0,
+                    shieldBonus: 0,
+                    projectileCount: 0,
+                    spread: 0,
+                    stun: 0,
+                    pierce: 0,
+                    range: 0,
+                    duration: 0
+                };
+            }
+            
+            const skillEffects = player.cardEffects[skillName];
             
             switch (effect) {
                 case 'damage':
-                    // 伤害加成
-                    player.cardDamageBonus = (player.cardDamageBonus || 0) + value;
+                    // 伤害加成 - 只对指定技能
+                    skillEffects.damageBonus += value;
                     break;
                 case 'attackSpeed':
-                    // 攻速加成
-                    player.attackSpeed = player.attackSpeed * (1 + value);
+                    // 攻速加成 - 只对指定技能
+                    skillEffects.attackSpeed *= (1 + value);
                     break;
                 case 'moveSpeed':
-                    // 移动速度加成
-                    player.moveSpeed = player.moveSpeed + value;
+                    // 移动速度加成 - 全局（不是技能相关）
+                    player.moveSpeed = (player.moveSpeed || 150) + value;
                     break;
                 case 'critRate':
-                    // 暴击率加成
-                    player.critRate = (player.critRate || 0) + value;
+                    // 暴击率加成 - 只对指定技能
+                    skillEffects.critRate += value;
                     break;
                 case 'critDamage':
-                    // 暴击伤害加成
-                    player.critDamage = (player.critDamage || 0) + value;
+                    // 暴击伤害加成 - 只对指定技能
+                    skillEffects.critDamage += value;
                     break;
                 case 'damageReduction':
-                    // 伤害减免
+                    // 伤害减免 - 全局
                     player.damageReduction = (player.damageReduction || 0) + value;
                     break;
                 case 'heal':
-                    // 治疗效果加成
-                    player.healBonus = (player.healBonus || 0) + value;
+                    // 治疗效果加成 - 只对指定技能
+                    skillEffects.healBonus += value;
                     break;
                 case 'shield':
-                    // 护盾加成
-                    player.cardShieldBonus = (player.cardShieldBonus || 0) + value;
+                    // 护盾加成 - 只对指定技能
+                    skillEffects.shieldBonus += value;
                     break;
                 case 'projectileCount':
-                    // 投射物数量加成
-                    player.cardProjectileCount = (player.cardProjectileCount || 0) + value;
+                    // 投射物数量加成 - 只对指定技能
+                    skillEffects.projectileCount += value;
                     break;
                 case 'spread':
-                    // 散射加成
-                    player.cardSpread = (player.cardSpread || 0) + value;
+                    // 散射加成 - 只对指定技能
+                    skillEffects.spread += value;
                     break;
                 case 'stun':
-                    // 定身效果
-                    player.cardStun = (player.cardStun || 0) + value;
+                    // 定身效果 - 只对指定技能
+                    skillEffects.stun += value;
                     break;
                 case 'pierce':
-                    // 穿透加成
-                    player.cardPierce = (player.cardPierce || 0) + value;
+                    // 穿透加成 - 只对指定技能
+                    skillEffects.pierce += value;
                     break;
                 case 'range':
-                    // 范围加成
-                    player.cardRange = (player.cardRange || 0) + value;
+                    // 范围加成 - 只对指定技能
+                    skillEffects.range += value;
                     break;
                 case 'duration':
-                    // 持续时间加成
-                    player.cardDuration = (player.cardDuration || 0) + value;
+                    // 持续时间加成 - 只对指定技能
+                    skillEffects.duration += value;
                     break;
                 // 其他效果可以继续扩展
             }
@@ -1122,49 +1151,76 @@ function applySingleCardEffect(player, cardName) {
     
     const effect = cardData.effect;
     const value = cardData.value;
+    const skillName = cardData.skill;
+    
+    // 跳过 equipSkill（装备技能不是增幅效果）
+    if (effect === 'equipSkill') return;
+    
+    // 初始化技能效果存储
+    if (!player.cardEffects) player.cardEffects = {};
+    if (!player.cardEffects[skillName]) {
+        player.cardEffects[skillName] = {
+            damageBonus: 0,
+            attackSpeed: 1,
+            moveSpeed: 0,
+            critRate: 0,
+            critDamage: 0,
+            damageReduction: 0,
+            healBonus: 0,
+            shieldBonus: 0,
+            projectileCount: 0,
+            spread: 0,
+            stun: 0,
+            pierce: 0,
+            range: 0,
+            duration: 0
+        };
+    }
+    
+    const skillEffects = player.cardEffects[skillName];
     
     switch (effect) {
         case 'damage':
-            player.cardDamageBonus = (player.cardDamageBonus || 0) + value;
+            skillEffects.damageBonus += value;
             break;
         case 'attackSpeed':
-            player.attackSpeed = player.attackSpeed * (1 + value);
+            skillEffects.attackSpeed *= (1 + value);
             break;
         case 'moveSpeed':
-            player.moveSpeed = player.moveSpeed + value;
+            player.moveSpeed = (player.moveSpeed || 150) + value;
             break;
         case 'critRate':
-            player.critRate = (player.critRate || 0) + value;
+            skillEffects.critRate += value;
             break;
         case 'critDamage':
-            player.critDamage = (player.critDamage || 0) + value;
+            skillEffects.critDamage += value;
             break;
         case 'damageReduction':
             player.damageReduction = (player.damageReduction || 0) + value;
             break;
         case 'heal':
-            player.healBonus = (player.healBonus || 0) + value;
+            skillEffects.healBonus += value;
             break;
         case 'shield':
-            player.cardShieldBonus = (player.cardShieldBonus || 0) + value;
+            skillEffects.shieldBonus += value;
             break;
         case 'projectileCount':
-            player.cardProjectileCount = (player.cardProjectileCount || 0) + value;
+            skillEffects.projectileCount += value;
             break;
         case 'spread':
-            player.cardSpread = (player.cardSpread || 0) + value;
+            skillEffects.spread += value;
             break;
         case 'stun':
-            player.cardStun = (player.cardStun || 0) + value;
+            skillEffects.stun += value;
             break;
         case 'pierce':
-            player.cardPierce = (player.cardPierce || 0) + value;
+            skillEffects.pierce += value;
             break;
         case 'range':
-            player.cardRange = (player.cardRange || 0) + value;
+            skillEffects.range += value;
             break;
         case 'duration':
-            player.cardDuration = (player.cardDuration || 0) + value;
+            skillEffects.duration += value;
             break;
     }
 }

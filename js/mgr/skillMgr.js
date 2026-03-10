@@ -35,13 +35,16 @@ const SkillManager = {
     
     // 攻击技能
     useAttackSkill(skill, caster, targets) {
-        // v2.20.0 应用卡牌伤害加成
-        const cardBonus = caster.cardDamageBonus || 0;
+        // v2.20.0 获取该技能对应的卡牌效果
+        const skillEffects = (caster.cardEffects && caster.cardEffects[skill.name]) || {};
+        
+        // 应用卡牌伤害加成
+        const cardBonus = skillEffects.damageBonus || 0;
         const damage = caster.attack * skill.damagePercent * (1 + cardBonus);
         
         // v2.20.0 应用卡牌投射物数量和散射效果
-        const cardProjectileCount = caster.cardProjectileCount || 0;
-        const cardSpread = caster.cardSpread || 0;
+        const cardProjectileCount = skillEffects.projectileCount || 0;
+        const cardSpread = skillEffects.spread || 0;
         const projectileCount = Math.max(1, (skill.projectileCount || 1) + cardProjectileCount);
         
         // v2.19.0 判断技能类型
@@ -49,14 +52,14 @@ const SkillManager = {
         const isHoming = skill.type === 'homing';  // 御剑术追踪
         
         // v2.20.0 应用卡牌范围加成
-        const cardRange = caster.cardRange || 0;
+        const cardRange = skillEffects.range || 0;
         const range = skill.range * (1 + cardRange);
         
         // v2.20.0 应用卡牌穿透加成
-        const cardPierce = caster.cardPierce || 0;
+        const cardPierce = skillEffects.pierce || 0;
         
         // v2.20.0 应用卡牌定身效果
-        const cardStun = caster.cardStun || 0;
+        const cardStun = skillEffects.stun || 0;
         
         // 单体攻击或散射
         const target = targets[0];
@@ -107,7 +110,13 @@ const SkillManager = {
     
     // 扇形攻击技能（风雪冰天）
     useFanSkill(skill, caster, targets) {
-        const damage = caster.attack * skill.damagePercent;
+        // v2.20.0 获取该技能对应的卡牌效果
+        const skillEffects = (caster.cardEffects && caster.cardEffects[skill.name]) || {};
+        
+        // 应用卡牌伤害加成
+        const cardBonus = skillEffects.damageBonus || 0;
+        const damage = caster.attack * skill.damagePercent * (1 + cardBonus);
+        
         const fanAngle = skill.fanAngle * Math.PI / 180; // 转换为弧度
         
         // 找到目标方向
@@ -196,8 +205,11 @@ const SkillManager = {
     
     // 治疗技能 - 只治疗范围内的队友
     useHealSkill(skill, caster, targets) {
-        // v2.20.0 应用卡牌治疗加成
-        const healBonus = caster.healBonus || 0;
+        // v2.20.0 获取该技能对应的卡牌效果
+        const skillEffects = (caster.cardEffects && caster.cardEffects[skill.name]) || {};
+        
+        // 应用卡牌治疗加成
+        const healBonus = skillEffects.healBonus || 0;
         const baseHeal = caster.attack * skill.healPercent;
         const healAmount = baseHeal * (1 + healBonus);
         
@@ -225,8 +237,11 @@ const SkillManager = {
     
     // 护盾技能 - 只给范围内的队友套护盾
     useShieldSkill(skill, caster, targets) {
-        // v2.20.0 应用卡牌护盾加成
-        const shieldBonus = caster.shieldBonus || 0;
+        // v2.20.0 获取该技能对应的卡牌效果
+        const skillEffects = (caster.cardEffects && caster.cardEffects[skill.name]) || {};
+        
+        // 应用卡牌护盾加成
+        const shieldBonus = skillEffects.shieldBonus || 0;
         const baseShield = caster.maxHp * skill.shieldPercent;
         const shieldAmount = baseShield * (1 + shieldBonus);
         
