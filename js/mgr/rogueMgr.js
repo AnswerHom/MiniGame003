@@ -84,13 +84,6 @@ function generateCardOptions() {
                 teamCards.push(cardName);
             }
         }
-        // v2.12.0 修复：功能卡只对赵灵师可见，通用卡对所有角色可见
-        if (cardData.skill === '通用') {
-            teamCards.push(cardName);
-        }
-        if (cardData.skill === '功能' && actualTeamMembers.includes('赵灵垚')) {
-            teamCards.push(cardName);
-        }
     }
     
     // 优先添加技能卡（如果没有未解锁的技能卡，则添加强化卡）
@@ -148,13 +141,6 @@ function battleDrawCard() {
             if (unlocked.includes(cardData.skill)) {
                 teamCards.push(cardName);
             }
-        }
-        // v2.12.0 修复：功能卡只对赵灵师可见，通用卡对所有角色可见
-        if (cardData.skill === '通用') {
-            teamCards.push(cardName);
-        }
-        if (cardData.skill === '功能' && actualTeamMembers.includes('赵灵儿')) {
-            teamCards.push(cardName);
         }
     }
     

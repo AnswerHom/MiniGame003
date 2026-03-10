@@ -215,18 +215,6 @@ const CARD_DATA = {
     '混沌初开': { skill: '阴阳逆转', effect: 'knockback', value: 50, rarity: '史诗', desc: '击退距离+50px' },
     '逆转乾坤': { skill: '阴阳逆转', effect: 'stun', value: 1, rarity: '传说', desc: '击退时眩晕1秒' },
     
-    // 通用卡牌
-    '身轻如燕': { skill: '通用', effect: 'moveSpeed', value: 10, rarity: '普通', desc: '移动速度+10' },
-    '铜筋铁骨': { skill: '通用', effect: 'damageReduction', value: 0.1, rarity: '稀有', desc: '受到的伤害-10%' },
-    '暴击强化': { skill: '通用', effect: 'critRate', value: 0.05, rarity: '稀有', desc: '暴击率+5%' },
-    '致命一击': { skill: '通用', effect: 'critDamage', value: 0.2, rarity: '史诗', desc: '暴击伤害+20%' },
-    
-    // 赵灵儿功能类卡牌
-    '冰心玉壶': { skill: '功能', effect: 'healAll', value: 0.15, rarity: '稀有', desc: '全队治疗效果+15%' },
-    '观音护体': { skill: '功能', effect: 'shieldAll', value: 0.2, rarity: '稀有', desc: '护盾值+20%' },
-    '起死回生': { skill: '功能', effect: 'reviveHpAll', value: 0.3, rarity: '史诗', desc: '复活后生命+30%' },
-    '灵泉涌现': { skill: '功能', effect: 'healRange', value: 30, rarity: '稀有', desc: '五雷咒范围+30px' },
-    
     // v2.12.0 技能抽取 - 技能卡（抽到后装备到角色）
     '御剑术': { skill: '御剑术', effect: 'equipSkill', rarity: '普通', desc: '装备技能：御剑术', char: '李逍遥' },
     '万剑护体': { skill: '万剑护体', effect: 'equipSkill', rarity: '史诗', desc: '装备技能：万剑护体', char: '李逍遥' },
