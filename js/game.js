@@ -1418,6 +1418,30 @@ function update(dt) {
             }
         }
         
+        // v2.26.0 自动寻找敌人并靠近到攻击范围
+        // 如果没有手动操作（摇杆未激活）且有敌人，自动靠近
+        if (!game.joystick.active && game.enemies.length > 0) {
+            const target = findNearestEnemy(player);
+            if (target) {
+                const dx = target.x - player.x;
+                const dy = target.y - player.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                // 攻击范围设为150（御剑术射程）
+                const attackRange = 150;
+                
+                // 如果距离大于攻击范围，自动靠近
+                if (dist > attackRange) {
+                    player.targetX = target.x;
+                    player.targetY = target.y;
+                } else {
+                    // 在攻击范围内，停止移动
+                    player.targetX = player.x;
+                    player.targetY = player.y;
+                }
+            }
+        }
+        
         // v2.11.0 技能自动释放 - 基于攻速、按顺序、大招独立
         if (player.skills && player.skills.length > 0) {
             // 初始化技能索引和上次释放时间
