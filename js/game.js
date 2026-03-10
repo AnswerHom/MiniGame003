@@ -819,6 +819,9 @@ function startGame() {
         game.players.push(createPlayer(charName));
     });
     
+    // 应用肉鸽卡牌效果
+    applyCardEffects();
+    
     // 同时更新 game.team 保持一致
     game.team = currentTeam;
     
@@ -1021,6 +1024,9 @@ function createPlayer(characterName) {
                     this.shield = 0;
                 }
             }
+            // v2.20.0 伤害减免
+            const damageReduction = this.damageReduction || 0;
+            actualDamage = actualDamage * (1 - damageReduction);
             // 扣血
             this.hp -= actualDamage;
             if (this.hp <= 0) {
@@ -1030,6 +1036,59 @@ function createPlayer(characterName) {
         }
     };
     return player;
+}
+
+// 应用肉鸽卡牌效果到玩家
+function applyCardEffects() {
+    if (!game.playerCards || game.playerCards.length === 0) return;
+    
+    // 为每个玩家应用卡牌效果
+    game.players.forEach(player => {
+        game.playerCards.forEach(cardName => {
+            const cardData = CARD_DATA[cardName];
+            if (!cardData) return;
+            
+            // 根据卡牌效果类型应用属性修改
+            const effect = cardData.effect;
+            const value = cardData.value;
+            
+            switch (effect) {
+                case 'damage':
+                    // 伤害加成
+                    player.cardDamageBonus = (player.cardDamageBonus || 0) + value;
+                    break;
+                case 'attackSpeed':
+                    // 攻速加成
+                    player.attackSpeed = player.attackSpeed * (1 + value);
+                    break;
+                case 'moveSpeed':
+                    // 移动速度加成
+                    player.moveSpeed = player.moveSpeed + value;
+                    break;
+                case 'critRate':
+                    // 暴击率加成
+                    player.critRate = (player.critRate || 0) + value;
+                    break;
+                case 'critDamage':
+                    // 暴击伤害加成
+                    player.critDamage = (player.critDamage || 0) + value;
+                    break;
+                case 'damageReduction':
+                    // 伤害减免
+                    player.damageReduction = (player.damageReduction || 0) + value;
+                    break;
+                case 'heal':
+                    // 治疗效果加成
+                    player.healBonus = (player.healBonus || 0) + value;
+                    break;
+                case 'shield':
+                    // 护盾加成
+                    player.shieldBonus = (player.shieldBonus || 0) + value;
+                    break;
+                // 其他效果可以继续扩展
+            }
+        });
+    });
 }
 
 // 移动玩家

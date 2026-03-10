@@ -35,7 +35,9 @@ const SkillManager = {
     
     // 攻击技能
     useAttackSkill(skill, caster, targets) {
-        const damage = caster.attack * skill.damagePercent;
+        // v2.20.0 应用卡牌伤害加成
+        const cardBonus = caster.cardDamageBonus || 0;
+        const damage = caster.attack * skill.damagePercent * (1 + cardBonus);
         
         // v2.19.0 判断技能类型
         const isLiXiaoyao = caster.name === '李逍遥';
@@ -153,7 +155,10 @@ const SkillManager = {
     
     // 治疗技能 - 只治疗范围内的队友
     useHealSkill(skill, caster, targets) {
-        const healAmount = caster.attack * skill.healPercent;
+        // v2.20.0 应用卡牌治疗加成
+        const healBonus = caster.healBonus || 0;
+        const baseHeal = caster.attack * skill.healPercent;
+        const healAmount = baseHeal * (1 + healBonus);
         
         // 筛选范围内的队友
         const inRangeTargets = targets.filter(target => {
@@ -179,7 +184,10 @@ const SkillManager = {
     
     // 护盾技能 - 只给范围内的队友套护盾
     useShieldSkill(skill, caster, targets) {
-        const shieldAmount = caster.maxHp * skill.shieldPercent;
+        // v2.20.0 应用卡牌护盾加成
+        const shieldBonus = caster.shieldBonus || 0;
+        const baseShield = caster.maxHp * skill.shieldPercent;
+        const shieldAmount = baseShield * (1 + shieldBonus);
         
         // 筛选范围内的队友
         const inRangeTargets = targets.filter(target => {
