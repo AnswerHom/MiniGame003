@@ -82,7 +82,8 @@ const SkillManager = {
                         swordColor: isHoming ? '#FFD700' : '#3182ce',
                         isHoming: isHoming,
                         pierce: cardPierce,
-                        stunDuration: cardStun
+                        stunDuration: cardStun,
+                        canPassObstacle: isHoming  // v2.21.0 御剑术穿越障碍物
                     });
                 }
             } else {
@@ -97,7 +98,8 @@ const SkillManager = {
                     swordColor: isGoldSword ? '#FFD700' : '#3182ce',
                     isHoming: isHoming,
                     pierce: cardPierce,
-                    stunDuration: cardStun
+                    stunDuration: cardStun,
+                    canPassObstacle: isHoming  // v2.21.0 御剑术穿越障碍物
                 });
             }
         }

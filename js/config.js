@@ -90,9 +90,9 @@ const SKILLS = {
         name: '御剑术',
         type: 'homing',  // v2.19.0 追踪技能
         damagePercent: 1.5,
-        range: 300,
+        range: 5000,  // v2.21.0 全屏飞行，无范围限制
         cooldown: 2.0,
-        description: '金色飞剑自动追踪最近敌人'
+        description: '金色飞剑自动追踪最近敌人，全屏飞行'
     },
     万剑护体: {
         name: '万剑护体',

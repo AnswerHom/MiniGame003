@@ -1422,8 +1422,9 @@ function update(dt) {
         p.life -= dt;
         
         // v2.7.0 子弹可被障碍物阻挡
+        // v2.21.0 御剑术可以穿越障碍物
         const hitObstacle = checkObstacleCollision(p.x, p.y, 5);
-        if (hitObstacle) {
+        if (hitObstacle && !p.canPassObstacle) {
             p.life = 0;
             return false;
         }
