@@ -1681,6 +1681,37 @@ function update(dt) {
         p.y += p.vy * dt;
         p.life -= dt;
         
+        // v2.27.0 万剑诀自动爆炸逻辑
+        if (p.isMeteor) {
+            const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+            // 当速度降低到一定程度时，认为到达目标位置，触发范围伤害
+            if (speed < 50 || p.life <= 0.05) {
+                // 造成范围伤害
+                const aoeRange = 80;
+                game.enemies.forEach(e => {
+                    if (!e.alive) return;
+                    const dx = e.x - p.x;
+                    const dy = e.y - p.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < aoeRange) {
+                        e.hp -= p.damage;
+                        addFloatingText(e.x, e.y - 20, Math.floor(p.damage), '#fff', 14);
+                        if (e.hp <= 0) {
+                            e.alive = false;
+                            game.gold += e.exp;
+                        }
+                        // 减速效果
+                        if (p.slowDuration > 0) {
+                            e.slowTimer = p.slowDuration;
+                            e.slowAmount = p.slowAmount;
+                        }
+                    }
+                });
+                p.life = 0;
+                return false;
+            }
+        }
+        
         // v2.7.0 子弹可被障碍物阻挡
         // v2.21.0 御剑术可以穿越障碍物
         const hitObstacle = checkObstacleCollision(p.x, p.y, 5);
