@@ -45,7 +45,6 @@ const SkillManager = {
         // v2.20.0 应用卡牌投射物数量和散射效果
         const cardProjectileCount = skillEffects.projectileCount || 0;
         const cardSpread = skillEffects.spread || 0;
-        const projectileCount = Math.max(1, (skill.projectileCount || 1) + cardProjectileCount);
         
         // v2.19.0 判断技能类型
         const isLiXiaoyao = caster.name === '李逍遥';
@@ -68,9 +67,39 @@ const SkillManager = {
             const dy = target.y - caster.y;
             const baseAngle = Math.atan2(dy, dx);
             
-            // v2.20.0 如果有散射效果，生成多个投射物
-            if (cardSpread > 0 || projectileCount > 1) {
-                const spreadCount = cardSpread > 0 ? (cardSpread + 2) : projectileCount;
+            // v2.23.0 分光化影：同一方向平行发射，横向偏移，依次间隔发射
+            if (cardProjectileCount > 0) {
+                const totalProjectiles = cardProjectileCount + 1;
+                const offsetDistance = 20;  // 横向偏移20px
+                
+                for (let i = 0; i < totalProjectiles; i++) {
+                    // 计算横向偏移：-1, 0, 1 等
+                    const lateralOffset = (i - (totalProjectiles - 1) / 2) * offsetDistance;
+                    
+                    // 垂直于发射方向的偏移
+                    const perpAngle = baseAngle + Math.PI / 2;
+                    const startX = caster.x + Math.cos(perpAngle) * lateralOffset;
+                    const startY = caster.y + Math.sin(perpAngle) * lateralOffset;
+                    
+                    // v2.23.0 依次发射，间隔0.05秒
+                    setTimeout(() => {
+                        createProjectileAt(caster, startX, startY, baseAngle, damage, range, {
+                            isSword: isLiXiaoyao || isHoming,
+                            isGold: isHoming,
+                            length: 60,
+                            width: 10,
+                            swordColor: isHoming ? '#FFD700' : '#3182ce',
+                            isHoming: isHoming,
+                            pierce: cardPierce,
+                            stunDuration: cardStun,
+                            canPassObstacle: isHoming
+                        });
+                    }, i * 50);  // 50ms = 0.05秒
+                }
+            }
+            // v2.20.0 散射效果：角度分散
+            else if (cardSpread > 0) {
+                const spreadCount = cardSpread + 2;
                 const spreadAngle = 0.3; // 散射角度弧度
                 
                 for (let i = 0; i < spreadCount; i++) {
@@ -86,7 +115,7 @@ const SkillManager = {
                         isHoming: isHoming,
                         pierce: cardPierce,
                         stunDuration: cardStun,
-                        canPassObstacle: isHoming  // v2.21.0 御剑术穿越障碍物
+                        canPassObstacle: isHoming
                     });
                 }
             } else {
@@ -102,7 +131,7 @@ const SkillManager = {
                     isHoming: isHoming,
                     pierce: cardPierce,
                     stunDuration: cardStun,
-                    canPassObstacle: isHoming  // v2.21.0 御剑术穿越障碍物
+                    canPassObstacle: isHoming
                 });
             }
         }
@@ -314,6 +343,35 @@ function createProjectile(caster, angle, damage, range, options = {}) {
         // v2.20.0 卡牌效果
         pierce: options.pierce || 0,
         stunDuration: options.stunDuration || 0
+    });
+}
+
+// v2.23.0 创建投射物（指定起始位置，用于分光化影效果）
+function createProjectileAt(caster, startX, startY, angle, damage, range, options = {}) {
+    const speed = 400;
+    const life = range / speed;
+    
+    const isLiXiaoyao = caster.name === '李逍遥';
+    
+    game.projectiles.push({
+        x: startX,
+        y: startY,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        damage: damage,
+        isCrit: Math.random() < caster.critRate,
+        life: life,
+        range: range,
+        type: isLiXiaoyao ? 'sword' : 'normal',
+        angle: angle,
+        isSword: isLiXiaoyao || options.isSword || false,
+        isGold: options.isGold || false,
+        length: options.length || 30,
+        width: options.width || 8,
+        swordColor: options.swordColor || '#3182ce',
+        pierce: options.pierce || 0,
+        stunDuration: options.stunDuration || 0,
+        canPassObstacle: options.canPassObstacle || false
     });
 }
 
