@@ -2036,56 +2036,36 @@ function drawBoundaries() {
     const ctx = game.ctx;
     const edgeWidth = 60;
     
-    // v2.25.1 根据地图大小绘制边界（世界坐标边界）
-    const worldLeft = 0;
-    const worldRight = game.worldWidth;
-    const worldTop = 0;
-    const worldBottom = game.worldHeight;
-    
     // 获取摄像机偏移
     const cameraOffsetX = game.width / 2 - game.camera.x;
     const cameraOffsetY = game.height / 2 - game.camera.y;
     
-    // 计算屏幕上的边界位置
-    const screenLeft = worldLeft + cameraOffsetX;
-    const screenRight = worldRight + cameraOffsetX;
-    const screenTop = worldTop + cameraOffsetY;
-    const screenBottom = worldBottom + cameraOffsetY;
+    // 世界边界屏幕坐标
+    const screenLeft = cameraOffsetX;
+    const screenRight = game.worldWidth + cameraOffsetX;
+    const screenTop = cameraOffsetY;
+    const screenBottom = game.worldHeight + cameraOffsetY;
     
-    // 左侧边界（如果在屏幕内可见）
-    if (screenLeft < edgeWidth) {
-        const gradient = ctx.createLinearGradient(0, 0, edgeWidth, 0);
-        gradient.addColorStop(0, 'rgba(200, 200, 200, 0.8)');
-        gradient.addColorStop(1, 'rgba(200, 200, 200, 0)');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, Math.max(0, screenTop), edgeWidth, Math.min(game.height, screenBottom - screenTop));
+    ctx.fillStyle = 'rgba(200, 200, 200, 0.5)';
+    
+    // 左侧边界
+    if (screenLeft > 0) {
+        ctx.fillRect(0, screenTop, Math.min(edgeWidth, screenLeft), game.worldHeight);
     }
     
-    // 右侧边界（如果在屏幕内可见）
-    if (screenRight > game.width - edgeWidth) {
-        const gradient2 = ctx.createLinearGradient(game.width - edgeWidth, 0, game.width, 0);
-        gradient2.addColorStop(0, 'rgba(200, 200, 200, 0)');
-        gradient2.addColorStop(1, 'rgba(200, 200, 200, 0.8)');
-        ctx.fillStyle = gradient2;
-        ctx.fillRect(game.width - edgeWidth, Math.max(0, screenTop), edgeWidth, Math.min(game.height, screenBottom - screenTop));
+    // 右侧边界
+    if (screenRight < game.width) {
+        ctx.fillRect(Math.max(game.width - edgeWidth, screenRight), screenTop, game.width - screenRight, game.worldHeight);
     }
     
-    // 顶部边界（如果在屏幕内可见）
-    if (screenTop < edgeWidth) {
-        const gradient3 = ctx.createLinearGradient(0, 0, 0, edgeWidth);
-        gradient3.addColorStop(0, 'rgba(200, 200, 200, 0.8)');
-        gradient3.addColorStop(1, 'rgba(200, 200, 200, 0)');
-        ctx.fillStyle = gradient3;
-        ctx.fillRect(Math.max(0, screenLeft), 0, Math.min(game.width, screenRight - screenLeft), edgeWidth);
+    // 顶部边界
+    if (screenTop > 0) {
+        ctx.fillRect(0, 0, game.width, Math.min(edgeWidth, screenTop));
     }
     
-    // 底部边界（如果在屏幕内可见）
-    if (screenBottom > game.height - edgeWidth) {
-        const gradient4 = ctx.createLinearGradient(0, game.height - edgeWidth, 0, game.height);
-        gradient4.addColorStop(0, 'rgba(200, 200, 200, 0)');
-        gradient4.addColorStop(1, 'rgba(200, 200, 200, 0.8)');
-        ctx.fillStyle = gradient4;
-        ctx.fillRect(Math.max(0, screenLeft), game.height - edgeWidth, Math.min(game.width, screenRight - screenLeft), edgeWidth);
+    // 底部边界
+    if (screenBottom < game.height) {
+        ctx.fillRect(0, Math.max(game.height - edgeWidth, screenBottom), game.width, game.height - screenBottom);
     }
 }
 
