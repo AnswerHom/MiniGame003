@@ -2046,25 +2046,39 @@ function drawBoundaries() {
     const screenTop = cameraOffsetY;
     const screenBottom = game.worldHeight + cameraOffsetY;
     
-    ctx.fillStyle = 'rgba(200, 200, 200, 0.5)';
-    
     // 左侧边界
     if (screenLeft > 0) {
+        const gradient = ctx.createLinearGradient(0, 0, edgeWidth, 0);
+        gradient.addColorStop(0, 'rgba(200, 200, 200, 0.5)');
+        gradient.addColorStop(1, 'rgba(200, 200, 200, 0)');
+        ctx.fillStyle = gradient;
         ctx.fillRect(0, screenTop, Math.min(edgeWidth, screenLeft), game.worldHeight);
     }
     
     // 右侧边界
     if (screenRight < game.width) {
+        const gradient2 = ctx.createLinearGradient(game.width - edgeWidth, 0, game.width, 0);
+        gradient2.addColorStop(0, 'rgba(200, 200, 200, 0)');
+        gradient2.addColorStop(1, 'rgba(200, 200, 200, 0.5)');
+        ctx.fillStyle = gradient2;
         ctx.fillRect(Math.max(game.width - edgeWidth, screenRight), screenTop, game.width - screenRight, game.worldHeight);
     }
     
     // 顶部边界
     if (screenTop > 0) {
+        const gradient3 = ctx.createLinearGradient(0, 0, 0, edgeWidth);
+        gradient3.addColorStop(0, 'rgba(200, 200, 200, 0.5)');
+        gradient3.addColorStop(1, 'rgba(200, 200, 200, 0)');
+        ctx.fillStyle = gradient3;
         ctx.fillRect(0, 0, game.width, Math.min(edgeWidth, screenTop));
     }
     
     // 底部边界
     if (screenBottom < game.height) {
+        const gradient4 = ctx.createLinearGradient(0, game.height - edgeWidth, 0, game.height);
+        gradient4.addColorStop(0, 'rgba(200, 200, 200, 0)');
+        gradient4.addColorStop(1, 'rgba(200, 200, 200, 0.5)');
+        ctx.fillStyle = gradient4;
         ctx.fillRect(0, Math.max(game.height - edgeWidth, screenBottom), game.width, game.height - screenBottom);
     }
 }
