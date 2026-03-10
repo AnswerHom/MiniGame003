@@ -1615,6 +1615,9 @@ function update(dt) {
         // v2.19.0 御剑术追踪逻辑
         // v2.25.0 优化：穿透后自动寻下一个目标
         if (p.isHoming) {
+            // 初始化穿透敌人列表
+            if (!p.hitEnemies) p.hitEnemies = [];
+            
             // v2.25.0 简单的避障逻辑：检测前方是否有障碍物
             if (p.canPassObstacle) {
                 const checkDist = 50;
@@ -1630,15 +1633,17 @@ function update(dt) {
                 }
             }
             
-            // 寻找最近的目标
+            // 寻找最近的目标（排除已穿透的敌人）
             let nearestEnemy = null;
             let nearestDist = Infinity;
             game.enemies.forEach(enemy => {
                 if (!enemy.alive) return;
+                // v2.25.0 排除已穿透的敌人
+                if (p.hitEnemies.includes(enemy)) return;
+                
                 const dx = enemy.x - p.x;
                 const dy = enemy.y - p.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
-                // v2.25.0 排除刚穿透的目标（避免立即重新追踪）
                 if (dist < nearestDist && dist > 30) {
                     nearestDist = dist;
                     nearestEnemy = enemy;
@@ -1699,38 +1704,19 @@ function update(dt) {
                 }
                 
                 // v2.20.0 穿透效果 - 如果有穿透次数，减少并继续存在
-                // v2.25.0 御剑术穿透后重新寻找目标
+                // v2.25.0 御剑术穿透后转向选择另外一个目标
                 if (p.pierce > 0 && p.maxPierce > 0) {
                     p.pierce--;
                     p.maxPierce--;
                     
                     if (p.isHoming) {
-                        // 御剑术：穿透后重新寻找最近的目标
-                        let nextEnemy = null;
-                        let nextDist = Infinity;
-                        game.enemies.forEach(e => {
-                            if (!e.alive) return;
-                            const dx = e.x - p.x;
-                            const dy = e.y - p.y;
-                            const dist = Math.sqrt(dx * dx + dy * dy);
-                            if (dist < nextDist && dist > 30) {  // 排除刚穿透的敌人
-                                nextDist = dist;
-                                nextEnemy = e;
-                            }
-                        });
+                        // 御剑术：记录已穿透的敌人，避免重复攻击
+                        if (!p.hitEnemies) p.hitEnemies = [];
+                        p.hitEnemies.push(enemy);
                         
-                        if (nextEnemy && nextDist < p.range) {
-                            // 立即转向新目标
-                            const angle = Math.atan2(nextEnemy.y - p.y, nextEnemy.x - p.x);
-                            const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
-                            p.vx = Math.cos(angle) * speed;
-                            p.vy = Math.sin(angle) * speed;
-                            p.angle = angle;
-                        } else {
-                            // 没有找到目标，向原方向飞行
-                            p.x += p.vx * 0.1;
-                            p.y += p.vy * 0.1;
-                        }
+                        // 向前飞行一小段
+                        p.x += p.vx * 0.05;
+                        p.y += p.vy * 0.05;
                     } else {
                         // 其他投射物：移到敌人后方继续飞行
                         p.x = enemy.x + p.vx * 0.1;
