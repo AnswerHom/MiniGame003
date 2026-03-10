@@ -63,6 +63,11 @@ function generateCardOptions() {
     for (const cardName in CARD_DATA) {
         const cardData = CARD_DATA[cardName];
         
+        // v2.23.1 跳过已拥有的卡牌
+        if (game.playerCards && game.playerCards.includes(cardName)) {
+            continue;
+        }
+        
         // v2.12.0 技能抽取 - 技能卡处理
         if (cardData.effect === 'equipSkill') {
             // 检查角色是否在队伍中且技能未解锁
@@ -90,11 +95,29 @@ function generateCardOptions() {
     // 优先添加技能卡（如果没有未解锁的技能卡，则添加强化卡）
     const cardPool = [...unlockedSkillCards, ...teamCards];
     
-    // 如果没有可用卡牌，使用全部卡牌
-    const finalPool = cardPool.length > 0 ? cardPool : Object.keys(CARD_DATA);
+    // 如果没有可用卡牌，使用全部卡牌（排除已拥有的）
+    let finalPool = cardPool.length > 0 ? cardPool : Object.keys(CARD_DATA);
+    // v2.23.1 过滤掉已拥有的卡牌
+    if (game.playerCards) {
+        finalPool = finalPool.filter(c => !game.playerCards.includes(c));
+    }
     
+    // v2.23.1 生成不重复的卡牌
+    const usedCards = new Set();
     for (let i = 0; i < BATTLE_ROGUE_CONFIG.cardOptions; i++) {
-        const randomCard = finalPool[Math.floor(Math.random() * finalPool.length)];
+        if (finalPool.length === 0) break;
+        
+        // 随机选择一张卡牌，确保不重复
+        let randomIndex;
+        let randomCard;
+        let attempts = 0;
+        do {
+            randomIndex = Math.floor(Math.random() * finalPool.length);
+            randomCard = finalPool[randomIndex];
+            attempts++;
+        } while (usedCards.has(randomCard) && attempts < 10);
+        
+        usedCards.add(randomCard);
         battleRogueState.availableCards.push(randomCard);
     }
 }
@@ -151,8 +174,18 @@ function battleDrawCard() {
     const cardPool = unlockedSkillCards.length > 0 ? unlockedSkillCards : teamCards;
     const finalPool = cardPool.length > 0 ? cardPool : Object.keys(CARD_DATA);
     
+    // v2.23.1 过滤掉已拥有的卡牌
+    let availablePool = finalPool;
+    if (game.playerCards) {
+        availablePool = finalPool.filter(c => !game.playerCards.includes(c));
+    }
+    
     // 随机获得1张卡牌
-    const drawnCard = finalPool[Math.floor(Math.random() * finalPool.length)];
+    if (availablePool.length === 0) {
+        battleRogueState.selectedCard = '无可用卡牌';
+        return;
+    }
+    const drawnCard = availablePool[Math.floor(Math.random() * availablePool.length)];
     const cardData = CARD_DATA[drawnCard];
     
     // v2.12.0 技能抽取 - 检查是否抽到技能卡
