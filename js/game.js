@@ -1704,19 +1704,44 @@ function update(dt) {
                 }
                 
                 // v2.20.0 穿透效果 - 如果有穿透次数，减少并继续存在
-                // v2.25.0 御剑术穿透后转向选择另外一个目标
+                // v2.25.0 御剑术穿透后立即转向选择另外一个目标
                 if (p.pierce > 0 && p.maxPierce > 0) {
                     p.pierce--;
                     p.maxPierce--;
                     
                     if (p.isHoming) {
-                        // 御剑术：记录已穿透的敌人，避免重复攻击
+                        // 御剑术：立即转向寻找下一个目标
                         if (!p.hitEnemies) p.hitEnemies = [];
                         p.hitEnemies.push(enemy);
                         
-                        // 向前飞行一小段
-                        p.x += p.vx * 0.05;
-                        p.y += p.vy * 0.05;
+                        // 立即寻找下一个目标
+                        let nextEnemy = null;
+                        let nextDist = Infinity;
+                        game.enemies.forEach(e => {
+                            if (!e.alive) return;
+                            // 排除已穿透的敌人
+                            if (p.hitEnemies.includes(e)) return;
+                            const dx = e.x - p.x;
+                            const dy = e.y - p.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            if (dist < nextDist && dist > 30) {
+                                nextDist = dist;
+                                nextEnemy = e;
+                            }
+                        });
+                        
+                        if (nextEnemy && nextDist < p.range) {
+                            // 立即转向新目标
+                            const angle = Math.atan2(nextEnemy.y - p.y, nextEnemy.x - p.x);
+                            const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+                            p.vx = Math.cos(angle) * speed;
+                            p.vy = Math.sin(angle) * speed;
+                            p.angle = angle;
+                        } else {
+                            // 没有新目标，继续沿原方向飞行
+                            p.x += p.vx * 0.1;
+                            p.y += p.vy * 0.1;
+                        }
                     } else {
                         // 其他投射物：移到敌人后方继续飞行
                         p.x = enemy.x + p.vx * 0.1;
