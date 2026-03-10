@@ -41,38 +41,24 @@ const SkillManager = {
         const isLiXiaoyao = caster.name === '李逍遥';
         const isHoming = skill.type === 'homing';  // 御剑术追踪
         
-        if (skill.direction) {
-            // 多方向攻击（四方剑阵）
-            for (let i = 0; i < skill.direction; i++) {
-                const angle = (Math.PI * 2 / skill.direction) * i;
-                createProjectile(caster, angle, damage, skill.range, {
-                    isSword: isLiXiaoyao,
-                    isGold: false,
-                    length: 60,
-                    width: 10,
-                    swordColor: '#3182ce'
-                });
-            }
-        } else {
-            // 单体攻击
-            const target = targets[0];
-            if (target) {
-                const dx = target.x - caster.x;
-                const dy = target.y - caster.y;
-                const angle = Math.atan2(dy, dx);
-                
-                // v2.19.0 御剑术：金色剑、追踪
-                const isGoldSword = isHoming;
-                
-                createProjectile(caster, angle, damage, skill.range, {
-                    isSword: isLiXiaoyao || isHoming,
-                    isGold: isGoldSword,
-                    length: 60,
-                    width: 10,
-                    swordColor: isGoldSword ? '#FFD700' : '#3182ce',  // 金色
-                    isHoming: isHoming  // 添加追踪标记
-                });
-            }
+        // 单体攻击
+        const target = targets[0];
+        if (target) {
+            const dx = target.x - caster.x;
+            const dy = target.y - caster.y;
+            const angle = Math.atan2(dy, dx);
+            
+            // v2.19.0 御剑术：金色剑、追踪
+            const isGoldSword = isHoming;
+            
+            createProjectile(caster, angle, damage, skill.range, {
+                isSword: isLiXiaoyao || isHoming,
+                isGold: isGoldSword,
+                length: 60,
+                width: 10,
+                swordColor: isGoldSword ? '#FFD700' : '#3182ce',  // 金色
+                isHoming: isHoming  // 添加追踪标记
+            });
         }
     },
     

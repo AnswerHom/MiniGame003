@@ -94,15 +94,6 @@ const SKILLS = {
         cooldown: 2.0,
         description: '金色飞剑自动追踪最近敌人'
     },
-    四方剑阵: {
-        name: '四方剑阵',
-        type: 'attack',
-        damagePercent: 0.8,
-        range: 120,
-        cooldown: 3,
-        direction: 4,
-        description: '向四个方向发射四道剑气'
-    },
     万剑护体: {
         name: '万剑护体',
         type: 'aoe',
@@ -237,7 +228,6 @@ const CARD_DATA = {
     '灵泉涌现': { skill: '功能', effect: 'healRange', value: 30, rarity: '稀有', desc: '五雷咒范围+30px' },
     
     // v2.12.0 技能抽取 - 技能卡（抽到后装备到角色）
-    '四方剑阵': { skill: '四方剑阵', effect: 'equipSkill', rarity: '稀有', desc: '装备技能：四方剑阵', char: '李逍遥' },
     '万剑护体': { skill: '万剑护体', effect: 'equipSkill', rarity: '史诗', desc: '装备技能：万剑护体', char: '李逍遥' },
     '观音咒': { skill: '观音咒', effect: 'equipSkill', rarity: '稀有', desc: '装备技能：观音咒', char: '赵灵儿' },
     '圣灵复活': { skill: '圣灵复活', effect: 'equipSkill', rarity: '史诗', desc: '装备技能：圣灵复活', char: '赵灵儿' },
