@@ -72,7 +72,13 @@ function drawBattleRogue() {
         
         ctx.font = 'bold 36px Microsoft YaHei';
         ctx.fillText(battleRogueState.selectedCard, game.width / 2, game.height / 2 + 20);
-        ctx.restore();
+        
+        // 修复：重置 Canvas 状态，避免影响后续渲染
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#fff';
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.globalAlpha = 1.0;
         return;
     }
     
