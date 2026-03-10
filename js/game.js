@@ -1446,7 +1446,19 @@ function update(dt) {
                 if (cooldown === undefined || cooldown <= 0) {
                     const target = findNearestEnemy(player);
                     if (target) {
-                        usePlayerSkill(player, skillName);
+                        // v2.26.0 检测目标距离，超出范围则靠近
+                        const skill = SKILLS[skillName];
+                        const attackRange = skill && skill.range ? skill.range : player.attackRange || 150;
+                        const distToTarget = Math.sqrt((target.x - player.x) ** 2 + (target.y - player.y) ** 2);
+                        
+                        if (distToTarget > attackRange) {
+                            // 目标超出范围，靠近目标
+                            player.targetX = target.x;
+                            player.targetY = target.y;
+                        } else {
+                            // 在攻击范围内，释放技能
+                            usePlayerSkill(player, skillName);
+                        }
                     }
                 }
             });
@@ -1469,11 +1481,22 @@ function update(dt) {
                             
                             const cooldown = player.skillCooldowns && player.skillCooldowns[skillName];
                             if (cooldown === undefined || cooldown <= 0) {
-                                usePlayerSkill(player, skillName);
-                                player.skillIndex = (checkIndex + 1) % skillCount;
-                                player.lastSkillTime = game.time;
-                                released = true;
-                                break;
+                                // v2.26.0 检测目标距离，超出范围则靠近
+                                const attackRange = skill.range ? skill.range : player.attackRange || 150;
+                                const distToTarget = Math.sqrt((target.x - player.x) ** 2 + (target.y - player.y) ** 2);
+                                
+                                if (distToTarget > attackRange) {
+                                    // 目标超出范围，靠近目标
+                                    player.targetX = target.x;
+                                    player.targetY = target.y;
+                                } else {
+                                    // 在攻击范围内，释放技能
+                                    usePlayerSkill(player, skillName);
+                                    player.skillIndex = (checkIndex + 1) % skillCount;
+                                    player.lastSkillTime = game.time;
+                                    released = true;
+                                    break;
+                                }
                             }
                         }
                     }
