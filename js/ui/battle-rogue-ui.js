@@ -91,11 +91,11 @@ function drawBattleRogue() {
     // 当前金币
     ctx.font = '20px Microsoft YaHei';
     ctx.fillStyle = '#ffd700';
-    ctx.fillText('💰 ' + game.gold, game.width / 2, game.height / 2 - 120);
+    ctx.fillText('💰 ' + game.gold, game.width / 2, game.height / 2 - 160);
     
     // 抽卡次数
     ctx.fillStyle = '#aaa';
-    ctx.fillText('已抽卡: ' + battleRogueState.drawCount + '次', game.width / 2, game.height / 2 - 90);
+    ctx.fillText('已抽卡: ' + battleRogueState.drawCount + '次', game.width / 2, game.height / 2 - 130);
     
     // v2.14.0 绘制卡牌 - 增大尺寸和间距
     const cardWidth = 140;
