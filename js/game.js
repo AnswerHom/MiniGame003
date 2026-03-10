@@ -298,6 +298,7 @@ function handleTouchStart(e) {
     }
     
     // 检查是否点击了UI按钮区域
+    // v2.18.0 摇杆不能阻碍按钮点击
     // 肉鸽按钮在右下角
     if (game.battleRogueBtn) {
         const btn = game.battleRogueBtn;
@@ -312,6 +313,21 @@ function handleTouchStart(e) {
             }
             return;
         }
+    }
+    
+    // v2.18.0 避免在右上角小地图区域激活摇杆
+    const mapSize = 120;
+    const mapX = game.width - mapSize - 10;
+    const mapY = 10;
+    if (x >= mapX && x <= mapX + mapSize && y >= mapY && y <= mapY + mapSize) {
+        // 点击了小地图区域，不激活摇杆
+        return;
+    }
+    
+    // v2.18.0 避免在左上角UI区域激活摇杆（波次、金币等）
+    if (x < 150 && y < 100) {
+        // 点击了左上角UI区域，不激活摇杆
+        return;
     }
     
     // 任意位置激活摇杆
