@@ -67,21 +67,20 @@ const SkillManager = {
             const dy = target.y - caster.y;
             const baseAngle = Math.atan2(dy, dx);
             
-            // v2.23.0 分光化影：同一方向平行发射，横向偏移，依次间隔发射
+            // v2.24.0 分光化影：同一方向连续发射，纵向间距，依次间隔发射
             if (cardProjectileCount > 0) {
                 const totalProjectiles = cardProjectileCount + 1;
-                const offsetDistance = 20;  // 横向偏移20px
+                const offsetDistance = 30;  // 纵向间距30px
                 
                 for (let i = 0; i < totalProjectiles; i++) {
-                    // 计算横向偏移：-1, 0, 1 等
-                    const lateralOffset = (i - (totalProjectiles - 1) / 2) * offsetDistance;
+                    // 计算纵向偏移：后续飞剑在前一把后方
+                    const longitOffset = i * offsetDistance;
                     
-                    // 垂直于发射方向的偏移
-                    const perpAngle = baseAngle + Math.PI / 2;
-                    const startX = caster.x + Math.cos(perpAngle) * lateralOffset;
-                    const startY = caster.y + Math.sin(perpAngle) * lateralOffset;
+                    // 在发射方向后方的偏移
+                    const startX = caster.x - Math.cos(baseAngle) * longitOffset;
+                    const startY = caster.y - Math.sin(baseAngle) * longitOffset;
                     
-                    // v2.23.0 依次发射，间隔0.05秒
+                    // v2.24.0 连续发射，间隔0.1秒
                     setTimeout(() => {
                         createProjectileAt(caster, startX, startY, baseAngle, damage, range, {
                             isSword: isLiXiaoyao || isHoming,
@@ -94,7 +93,7 @@ const SkillManager = {
                             stunDuration: cardStun,
                             canPassObstacle: isHoming
                         });
-                    }, i * 50);  // 50ms = 0.05秒
+                    }, i * 100);  // 100ms = 0.1秒
                 }
             }
             // v2.20.0 散射效果：角度分散
