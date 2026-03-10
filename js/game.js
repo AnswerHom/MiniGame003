@@ -57,7 +57,7 @@ const game = {
     obstacles: [],
     state: 'menu', // menu, lobby, gacha, playing, gameover, victory, map
     wave: 1,
-    gold: 0,
+    gold: 100000,
     diamond: 200, // 钻石
     time: 0,
     lastTime: 0,
@@ -947,7 +947,7 @@ function startGame() {
     game.enemies = [];
     game.projectiles = [];
     game.effects = [];
-    game.gold = 0;
+    game.gold = 100000;
     
     // v2.3.1 队伍系统 - 设置战斗状态
     TeamManager.setInBattle(true);
