@@ -90,6 +90,7 @@ const SkillManager = {
                             swordColor: isHoming ? '#FFD700' : '#3182ce',
                             isHoming: isHoming,
                             pierce: cardPierce,
+                            maxPierce: isHoming ? 5 : 0,  // v2.25.0 御剑术最多穿透5个目标
                             stunDuration: cardStun,
                             canPassObstacle: isHoming
                         });
@@ -129,6 +130,7 @@ const SkillManager = {
                     swordColor: isGoldSword ? '#FFD700' : '#3182ce',
                     isHoming: isHoming,
                     pierce: cardPierce,
+                    maxPierce: isHoming ? 5 : 0,  // v2.25.0 御剑术最多穿透5个目标
                     stunDuration: cardStun,
                     canPassObstacle: isHoming
                 });
