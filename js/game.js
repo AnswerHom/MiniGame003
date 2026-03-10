@@ -1440,19 +1440,25 @@ function update(dt) {
                 }
             });
             
-            // 1. 大招单独判断 - 冷却完毕就释放
+            // 1. 大招单独判断 - 冷却完毕就释放（必须在攻击范围内）
             ultimateSkills.forEach(skillName => {
                 const cooldown = player.skillCooldowns && player.skillCooldowns[skillName];
                 if (cooldown === undefined || cooldown <= 0) {
                     const target = findNearestEnemy(player);
                     if (target) {
-                        // 直接释放技能
-                        usePlayerSkill(player, skillName);
+                        const skill = SKILLS[skillName];
+                        const attackRange = skill && skill.range ? skill.range : 150;
+                        const distToTarget = Math.sqrt((target.x - player.x) ** 2 + (target.y - player.y) ** 2);
+                        
+                        // v2.28.0 只有在攻击范围内才释放技能
+                        if (distToTarget <= attackRange) {
+                            usePlayerSkill(player, skillName);
+                        }
                     }
                 }
             });
             
-            // 2. 普通技能按顺序循环释放，基于攻速
+            // 2. 普通技能按顺序循环释放，基于攻速（在攻击范围内才释放）
             if (normalSkills.length > 0) {
                 const timeSinceLastSkill = game.time - player.lastSkillTime;
                 
@@ -1470,12 +1476,17 @@ function update(dt) {
                             
                             const cooldown = player.skillCooldowns && player.skillCooldowns[skillName];
                             if (cooldown === undefined || cooldown <= 0) {
-                                // 直接释放技能
-                                usePlayerSkill(player, skillName);
-                                player.skillIndex = (checkIndex + 1) % skillCount;
-                                player.lastSkillTime = game.time;
-                                released = true;
-                                break;
+                                const attackRange = skill.range ? skill.range : 150;
+                                const distToTarget = Math.sqrt((target.x - player.x) ** 2 + (target.y - player.y) ** 2);
+                                
+                                // v2.28.0 只有在攻击范围内才释放技能
+                                if (distToTarget <= attackRange) {
+                                    usePlayerSkill(player, skillName);
+                                    player.skillIndex = (checkIndex + 1) % skillCount;
+                                    player.lastSkillTime = game.time;
+                                    released = true;
+                                    break;
+                                }
                             }
                         }
                     }
