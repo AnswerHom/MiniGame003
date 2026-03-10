@@ -76,12 +76,13 @@ function generateCardOptions() {
             continue;
         }
         
-        // 检查卡牌是否属于队伍中的英雄
-        if (actualTeamMembers.includes(cardData.skill)) {
-            // v2.12.0 检查强化卡的技能是否已解锁
-            const unlocked = game.unlockedSkills[cardData.skill] || [];
+        // 检查卡牌是否属于队伍中某个角色的已解锁技能
+        // v2.20.0 修复：遍历队伍角色，检查其已解锁技能列表
+        for (const charName of actualTeamMembers) {
+            const unlocked = game.unlockedSkills[charName] || [];
             if (unlocked.includes(cardData.skill)) {
                 teamCards.push(cardName);
+                break;
             }
         }
     }
@@ -136,10 +137,12 @@ function battleDrawCard() {
         }
         
         // 强化卡处理
-        if (actualTeamMembers.includes(cardData.skill)) {
-            const unlocked = game.unlockedSkills[cardData.skill] || [];
+        // v2.20.0 修复：遍历队伍角色，检查其已解锁技能列表
+        for (const charName of actualTeamMembers) {
+            const unlocked = game.unlockedSkills[charName] || [];
             if (unlocked.includes(cardData.skill)) {
                 teamCards.push(cardName);
+                break;
             }
         }
     }
