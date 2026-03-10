@@ -178,31 +178,42 @@ const TeamManager = {
     },
 
     // 队伍跟随移动（战斗中的队伍行为）
+    // v2.22.0 优化：每个角色跟随前一个角色，形成纵列队形
     updateTeamFollow(leaderPlayer) {
         if (!teamData.inBattle || teamData.members.length <= 1) return;
-
-        const leaderPos = { x: leaderPlayer.x, y: leaderPlayer.y };
         
-        // 更新非队长成员的跟随位置
+        // v2.22.0 平滑跟随系数
+        const followSmoothing = 0.1;
+        
+        // 第1个角色（队长）由玩家控制，不需要跟随
+        // 从第2个角色开始，每个角色跟随前一个角色
         for (let i = 1; i < game.players.length; i++) {
-            const targetPos = this.getTargetPosition(leaderPos.x, leaderPos.y, i);
-            const member = game.players[i];
+            const leader = game.players[i - 1];  // 前一个角色
+            const member = game.players[i];      // 当前角色
             
-            // 平滑移动到目标位置
-            const dx = targetPos.x - member.x;
-            const dy = targetPos.y - member.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (!leader || !member) continue;
+            if (!leader.alive || !member.alive) continue;
             
-            if (dist > 5) {
-                const moveSpeed = member.moveSpeed || 70;
-                const moveX = (dx / dist) * moveSpeed * 0.1;
-                const moveY = (dy / dist) * moveSpeed * 0.1;
-                member.x += moveX;
-                member.y += moveY;
+            // 计算目标位置：在前一个角色后方30px
+            const dx = leader.x - member.x;
+            const dy = leader.y - member.y;
+            const angle = Math.atan2(dy, dx);
+            
+            const targetX = leader.x - Math.cos(angle) * TeamConfig.followDistance;
+            const targetY = leader.y - Math.sin(angle) * TeamConfig.followDistance;
+            
+            // 平滑移动到目标位置（使用smoothing系数）
+            const moveDx = targetX - member.x;
+            const moveDy = targetY - member.y;
+            const moveDist = Math.sqrt(moveDx * moveDx + moveDy * moveDy);
+            
+            if (moveDist > 5) {
+                member.x += moveDx * followSmoothing;
+                member.y += moveDy * followSmoothing;
             }
             
             // 同步转向
-            member.direction = leaderPlayer.direction;
+            member.direction = leader.direction;
         }
     },
 
