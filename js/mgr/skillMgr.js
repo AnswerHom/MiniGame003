@@ -35,31 +35,31 @@ const SkillManager = {
     
     // 攻击技能
     useAttackSkill(skill, caster, targets) {
-        // v2.21.0 获取该技能的卡牌加成（只对指定技能生效）
-        const skillEffects = caster.cardEffects ? caster.cardEffects[skill.name] : null;
+        // v2.20.0 获取该技能对应的卡牌效果
+        const skillEffects = (caster.cardEffects && caster.cardEffects[skill.name]) || {};
         
-        // 伤害加成
-        const cardDamageBonus = skillEffects && skillEffects.damage ? skillEffects.damage : 0;
-        const damage = caster.attack * skill.damagePercent * (1 + cardDamageBonus);
+        // 应用卡牌伤害加成
+        const cardBonus = skillEffects.damageBonus || 0;
+        const damage = caster.attack * skill.damagePercent * (1 + cardBonus);
         
-        // 投射物数量和散射效果
-        const cardProjectileCount = skillEffects && skillEffects.projectileCount ? skillEffects.projectileCount : 0;
-        const cardSpread = skillEffects && skillEffects.spread ? skillEffects.spread : 0;
+        // v2.20.0 应用卡牌投射物数量和散射效果
+        const cardProjectileCount = skillEffects.projectileCount || 0;
+        const cardSpread = skillEffects.spread || 0;
         const projectileCount = Math.max(1, (skill.projectileCount || 1) + cardProjectileCount);
         
         // v2.19.0 判断技能类型
         const isLiXiaoyao = caster.name === '李逍遥';
         const isHoming = skill.type === 'homing';  // 御剑术追踪
         
-        // 范围加成
-        const cardRange = skillEffects && skillEffects.range ? skillEffects.range : 0;
+        // v2.20.0 应用卡牌范围加成
+        const cardRange = skillEffects.range || 0;
         const range = skill.range * (1 + cardRange);
         
-        // 穿透加成
-        const cardPierce = skillEffects && skillEffects.pierce ? skillEffects.pierce : 0;
+        // v2.20.0 应用卡牌穿透加成
+        const cardPierce = skillEffects.pierce || 0;
         
-        // 定身效果
-        const cardStun = skillEffects && skillEffects.stun ? skillEffects.stun : 0;
+        // v2.20.0 应用卡牌定身效果
+        const cardStun = skillEffects.stun || 0;
         
         // 单体攻击或散射
         const target = targets[0];
@@ -104,35 +104,19 @@ const SkillManager = {
                     stunDuration: cardStun,
                     canPassObstacle: isHoming  // v2.21.0 御剑术穿越障碍物
                 });
-                
-                // v2.20.0 分光化影：连续发射后续子弹（只对指定技能生效）
-                if (rapidFireInterval > 0) {
-                    const rapidFireCount = 2; // 分光化影再发射2发
-                    for (let i = 1; i <= rapidFireCount; i++) {
-                        setTimeout(() => {
-                            if (caster && caster.alive) {
-                                createProjectile(caster, baseAngle, damage, range, {
-                                    isSword: isLiXiaoyao || isHoming,
-                                    isGold: isGoldSword,
-                                    length: 60,
-                                    width: 10,
-                                    swordColor: isGoldSword ? '#FFD700' : '#3182ce',
-                                    isHoming: isHoming,
-                                    pierce: cardPierce,
-                                    stunDuration: cardStun,
-                                    canPassObstacle: isHoming
-                                });
-                            }
-                        }, rapidFireInterval * 1000 * i);
-                    }
-                }
             }
         }
     },
     
     // 扇形攻击技能（风雪冰天）
     useFanSkill(skill, caster, targets) {
-        const damage = caster.attack * skill.damagePercent;
+        // v2.20.0 获取该技能对应的卡牌效果
+        const skillEffects = (caster.cardEffects && caster.cardEffects[skill.name]) || {};
+        
+        // 应用卡牌伤害加成
+        const cardBonus = skillEffects.damageBonus || 0;
+        const damage = caster.attack * skill.damagePercent * (1 + cardBonus);
+        
         const fanAngle = skill.fanAngle * Math.PI / 180; // 转换为弧度
         
         // 找到目标方向
@@ -221,8 +205,11 @@ const SkillManager = {
     
     // 治疗技能 - 只治疗范围内的队友
     useHealSkill(skill, caster, targets) {
-        // v2.20.0 应用卡牌治疗加成
-        const healBonus = caster.healBonus || 0;
+        // v2.20.0 获取该技能对应的卡牌效果
+        const skillEffects = (caster.cardEffects && caster.cardEffects[skill.name]) || {};
+        
+        // 应用卡牌治疗加成
+        const healBonus = skillEffects.healBonus || 0;
         const baseHeal = caster.attack * skill.healPercent;
         const healAmount = baseHeal * (1 + healBonus);
         
@@ -250,8 +237,11 @@ const SkillManager = {
     
     // 护盾技能 - 只给范围内的队友套护盾
     useShieldSkill(skill, caster, targets) {
-        // v2.20.0 应用卡牌护盾加成
-        const shieldBonus = caster.shieldBonus || 0;
+        // v2.20.0 获取该技能对应的卡牌效果
+        const skillEffects = (caster.cardEffects && caster.cardEffects[skill.name]) || {};
+        
+        // 应用卡牌护盾加成
+        const shieldBonus = skillEffects.shieldBonus || 0;
         const baseShield = caster.maxHp * skill.shieldPercent;
         const shieldAmount = baseShield * (1 + shieldBonus);
         
