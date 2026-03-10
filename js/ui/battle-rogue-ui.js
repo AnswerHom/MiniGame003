@@ -27,9 +27,6 @@ function drawBattleRogueButton() {
     
     // 保存按钮区域供点击检测
     game.battleRogueBtn = { x: btnX, y: btnY, w: btnW, h: btnH };
-    
-    // 绘制战斗肉鸽界面
-    drawBattleRogue();
 }
 
 // 绘制战斗肉鸽界面

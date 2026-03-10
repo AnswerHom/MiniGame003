@@ -43,6 +43,9 @@ function drawGameUI() {
     
     // 肉鸽按钮
     drawBattleRogueButton();
+    
+    // 绘制战斗肉鸽界面
+    drawBattleRogue();
 }
 
 // 绘制虚拟摇杆（v2.10.0 任意位置显示，默认隐藏）
