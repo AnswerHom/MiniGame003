@@ -1520,9 +1520,9 @@ function update(dt) {
                 // v2.20.0 穿透效果 - 如果有穿透次数，减少并继续存在
                 if (p.pierce > 0) {
                     p.pierce--;
-                    // 避免同一帧重复击中
-                    p.x = -1000; 
-                    p.y = -1000;
+                    // 将投射物移到敌人后方继续飞行
+                    p.x = enemy.x + p.vx * 0.1;
+                    p.y = enemy.y + p.vy * 0.1;
                 } else {
                     p.life = 0;
                 }
