@@ -242,8 +242,7 @@ function handleClick(e) {
             }
         }
         
-        // 移动玩家
-        movePlayer(x, y);
+        // v2.23.1 取消点击地板控制行走，只通过摇杆控制
     }
 }
 
@@ -392,6 +391,13 @@ function handleTouchEnd(e) {
     for (let i = 0; i < e.changedTouches.length; i++) {
         const touch = e.changedTouches[i];
         if (touch.identifier === game.joystick.touchId) {
+            // v2.23.1 放开摇杆后角色立即停止
+            const player = game.players[0];
+            if (player) {
+                player.targetX = player.x;
+                player.targetY = player.y;
+            }
+            
             game.joystick.active = false;
             game.joystick.visible = false;
             game.joystick.touchId = null;
@@ -486,12 +492,16 @@ function handleMouseMove(e) {
 
 // PC端鼠标松开 - 虚拟摇杆
 function handleMouseUp(e) {
-    if (battleRogueState.active) return;
-    
-    if (game.joystick.mouseDown) {
+    if (game.joystick.active) {
+        // v2.23.1 放开摇杆后角色立即停止
+        const player = game.players[0];
+        if (player) {
+            player.targetX = player.x;
+            player.targetY = player.y;
+        }
+        
         game.joystick.active = false;
         game.joystick.visible = false;
-        game.joystick.mouseDown = false;
     }
 }
 
