@@ -1409,34 +1409,6 @@ function update(dt) {
     game.players.forEach(player => {
         if (!player.alive) return;
         
-        // v2.26.0 自动靠近敌人逻辑：当没有摇杆控制时
-        if (!game.joystick.active) {
-            const nearestEnemy = findNearestEnemy(player);
-            if (nearestEnemy) {
-                // 找到最近的敌人，检查是否在攻击范围内
-                const distToEnemy = Math.sqrt((nearestEnemy.x - player.x) ** 2 + (nearestEnemy.y - player.y) ** 2);
-                
-                // 找到最小攻击范围
-                let minAttackRange = 150; // 默认值
-                if (player.skills && player.skills.length > 0) {
-                    player.skills.forEach(skillName => {
-                        const skill = SKILLS[skillName];
-                        if (skill && skill.range) {
-                            if (skill.range < minAttackRange) {
-                                minAttackRange = skill.range;
-                            }
-                        }
-                    });
-                }
-                
-                // 如果敌人超出攻击范围，自动靠近
-                if (distToEnemy > minAttackRange) {
-                    player.targetX = nearestEnemy.x;
-                    player.targetY = nearestEnemy.y;
-                }
-            }
-        }
-        
         // 更新技能冷却
         if (player.skillCooldowns) {
             for (let skillName in player.skillCooldowns) {
