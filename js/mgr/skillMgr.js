@@ -39,28 +39,67 @@ const SkillManager = {
         const cardBonus = caster.cardDamageBonus || 0;
         const damage = caster.attack * skill.damagePercent * (1 + cardBonus);
         
+        // v2.20.0 应用卡牌投射物数量和散射效果
+        const cardProjectileCount = caster.cardProjectileCount || 0;
+        const cardSpread = caster.cardSpread || 0;
+        const projectileCount = Math.max(1, (skill.projectileCount || 1) + cardProjectileCount);
+        
         // v2.19.0 判断技能类型
         const isLiXiaoyao = caster.name === '李逍遥';
         const isHoming = skill.type === 'homing';  // 御剑术追踪
         
-        // 单体攻击
+        // v2.20.0 应用卡牌范围加成
+        const cardRange = caster.cardRange || 0;
+        const range = skill.range * (1 + cardRange);
+        
+        // v2.20.0 应用卡牌穿透加成
+        const cardPierce = caster.cardPierce || 0;
+        
+        // v2.20.0 应用卡牌定身效果
+        const cardStun = caster.cardStun || 0;
+        
+        // 单体攻击或散射
         const target = targets[0];
         if (target) {
             const dx = target.x - caster.x;
             const dy = target.y - caster.y;
-            const angle = Math.atan2(dy, dx);
+            const baseAngle = Math.atan2(dy, dx);
             
-            // v2.19.0 御剑术：金色剑、追踪
-            const isGoldSword = isHoming;
-            
-            createProjectile(caster, angle, damage, skill.range, {
-                isSword: isLiXiaoyao || isHoming,
-                isGold: isGoldSword,
-                length: 60,
-                width: 10,
-                swordColor: isGoldSword ? '#FFD700' : '#3182ce',  // 金色
-                isHoming: isHoming  // 添加追踪标记
-            });
+            // v2.20.0 如果有散射效果，生成多个投射物
+            if (cardSpread > 0 || projectileCount > 1) {
+                const spreadCount = cardSpread > 0 ? (cardSpread + 2) : projectileCount;
+                const spreadAngle = 0.3; // 散射角度弧度
+                
+                for (let i = 0; i < spreadCount; i++) {
+                    const angleOffset = (i - (spreadCount - 1) / 2) * spreadAngle;
+                    const angle = baseAngle + angleOffset;
+                    
+                    createProjectile(caster, angle, damage, range, {
+                        isSword: isLiXiaoyao || isHoming,
+                        isGold: isHoming,
+                        length: 60,
+                        width: 10,
+                        swordColor: isHoming ? '#FFD700' : '#3182ce',
+                        isHoming: isHoming,
+                        pierce: cardPierce,
+                        stunDuration: cardStun
+                    });
+                }
+            } else {
+                // v2.19.0 御剑术：金色剑、追踪
+                const isGoldSword = isHoming;
+                
+                createProjectile(caster, baseAngle, damage, range, {
+                    isSword: isLiXiaoyao || isHoming,
+                    isGold: isGoldSword,
+                    length: 60,
+                    width: 10,
+                    swordColor: isGoldSword ? '#FFD700' : '#3182ce',
+                    isHoming: isHoming,
+                    pierce: cardPierce,
+                    stunDuration: cardStun
+                });
+            }
         }
     },
     
@@ -254,7 +293,10 @@ function createProjectile(caster, angle, damage, range, options = {}) {
         isGold: options.isGold || false,
         length: options.length || 30,
         width: options.width || 8,
-        swordColor: options.swordColor || '#3182ce'  // v2.5.0 剑颜色
+        swordColor: options.swordColor || '#3182ce',  // v2.5.0 剑颜色
+        // v2.20.0 卡牌效果
+        pierce: options.pierce || 0,
+        stunDuration: options.stunDuration || 0
     });
 }
 

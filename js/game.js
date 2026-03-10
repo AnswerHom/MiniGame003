@@ -1083,7 +1083,31 @@ function applyCardEffects() {
                     break;
                 case 'shield':
                     // 护盾加成
-                    player.shieldBonus = (player.shieldBonus || 0) + value;
+                    player.cardShieldBonus = (player.cardShieldBonus || 0) + value;
+                    break;
+                case 'projectileCount':
+                    // 投射物数量加成
+                    player.cardProjectileCount = (player.cardProjectileCount || 0) + value;
+                    break;
+                case 'spread':
+                    // 散射加成
+                    player.cardSpread = (player.cardSpread || 0) + value;
+                    break;
+                case 'stun':
+                    // 定身效果
+                    player.cardStun = (player.cardStun || 0) + value;
+                    break;
+                case 'pierce':
+                    // 穿透加成
+                    player.cardPierce = (player.cardPierce || 0) + value;
+                    break;
+                case 'range':
+                    // 范围加成
+                    player.cardRange = (player.cardRange || 0) + value;
+                    break;
+                case 'duration':
+                    // 持续时间加成
+                    player.cardDuration = (player.cardDuration || 0) + value;
                     break;
                 // 其他效果可以继续扩展
             }
@@ -1307,6 +1331,12 @@ function update(dt) {
     game.enemies.forEach(enemy => {
         if (!enemy.alive) return;
         
+        // v2.20.0 定身效果
+        if (enemy.stunTimer > 0) {
+            enemy.stunTimer -= dt;
+            return; // 定身时不移动
+        }
+        
         // 计算移动速度（考虑减速效果和精英怪光环）
         let currentSpeed = enemy.moveSpeed;
         if (enemy.slowTimer > 0) {
@@ -1422,7 +1452,20 @@ function update(dt) {
                     enemy.slowAmount = p.slowAmount;
                 }
                 
-                p.life = 0;
+                // v2.20.0 定身效果
+                if (p.stunDuration > 0) {
+                    enemy.stunTimer = p.stunDuration;
+                }
+                
+                // v2.20.0 穿透效果 - 如果有穿透次数，减少并继续存在
+                if (p.pierce > 0) {
+                    p.pierce--;
+                    // 避免同一帧重复击中
+                    p.x = -1000; 
+                    p.y = -1000;
+                } else {
+                    p.life = 0;
+                }
             }
         });
         
