@@ -1682,18 +1682,15 @@ function update(dt) {
         p.life -= dt;
         
         // v2.27.0 万剑诀自动爆炸逻辑
+        // v2.28.0 万剑诀必定命中：使用锁定敌人列表
         if (p.isMeteor) {
             const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
             // 当速度降低到一定程度时，认为到达目标位置，触发范围伤害
             if (speed < 50 || p.life <= 0.05) {
-                // 造成范围伤害
-                const aoeRange = 80;
-                game.enemies.forEach(e => {
-                    if (!e.alive) return;
-                    const dx = e.x - p.x;
-                    const dy = e.y - p.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < aoeRange) {
+                // v2.28.0 万剑诀必定命中：对锁定的敌人造成伤害
+                if (p.lockedEnemies && p.lockedEnemies.length > 0) {
+                    p.lockedEnemies.forEach(e => {
+                        if (!e.alive) return;
                         e.hp -= p.damage;
                         addFloatingText(e.x, e.y - 20, Math.floor(p.damage), '#fff', 14);
                         if (e.hp <= 0) {
@@ -1705,8 +1702,12 @@ function update(dt) {
                             e.slowTimer = p.slowDuration;
                             e.slowAmount = p.slowAmount;
                         }
-                    }
-                });
+                        // 定身效果
+                        if (p.stunDuration > 0) {
+                            e.stunTimer = p.stunDuration;
+                        }
+                    });
+                }
                 p.life = 0;
                 return false;
             }
@@ -1742,32 +1743,6 @@ function update(dt) {
                 if (p.type === 'ice' && p.slowDuration > 0) {
                     enemy.slowTimer = p.slowDuration;
                     enemy.slowAmount = p.slowAmount;
-                }
-                
-                // v2.27.0 万剑诀范围伤害（击中敌人时）
-                if (p.isMeteor) {
-                    // 造成范围伤害
-                    const aoeRange = 80;
-                    game.enemies.forEach(e => {
-                        if (!e.alive) return;
-                        const dx = e.x - p.x;
-                        const dy = e.y - p.y;
-                        const dist = Math.sqrt(dx * dx + dy * dy);
-                        if (dist < aoeRange) {
-                            e.hp -= p.damage * 0.5;
-                            addFloatingText(e.x, e.y - 20, Math.floor(p.damage * 0.5), '#ffd700', 14);
-                            if (e.hp <= 0) {
-                                e.alive = false;
-                                game.gold += e.exp;
-                            }
-                            // 减速效果
-                            if (p.slowDuration > 0) {
-                                e.slowTimer = p.slowDuration;
-                                e.slowAmount = p.slowAmount;
-                            }
-                        }
-                    });
-                    p.life = 0; // 万剑诀击中后消失
                 }
                 
                 // v2.20.0 定身效果

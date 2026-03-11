@@ -73,6 +73,19 @@ const SkillManager = {
             const targetX = target.x;
             const targetY = target.y;
             
+            // v2.28.0 万剑诀必定命中：获取范围内的所有敌人
+            const lockedEnemies = [];
+            const aoeRange = 150;  // 范围
+            game.enemies.forEach(e => {
+                if (!e.alive) return;
+                const dx = e.x - targetX;
+                const dy = e.y - targetY;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < aoeRange) {
+                    lockedEnemies.push(e);
+                }
+            });
+            
             // 生成多把飞剑，从上方砸向目标
             for (let i = 0; i < meteorCount; i++) {
                 // 计算飞剑的起始位置（在目标上方随机分布）
@@ -86,6 +99,7 @@ const SkillManager = {
                 const vy = speed;
                 
                 // v2.27.0 创建陨石/飞剑效果
+                // v2.28.0 万剑诀必定命中：传递锁定的敌人列表
                 createMeteorProjectile(caster, startX, startY, vx, vy, damage, range, {
                     isSword: true,
                     isGold: true,
@@ -96,7 +110,8 @@ const SkillManager = {
                     stunDuration: cardStun,
                     slowDuration: skillEffects.slow ? 3 : 0,
                     slowAmount: skillEffects.slow || 0,
-                    canPassObstacle: true  // v2.28.0 万剑诀无视障碍物
+                    canPassObstacle: true,  // v2.28.0 万剑诀无视障碍物
+                    lockedEnemies: lockedEnemies  // v2.28.0 万剑诀必定命中
                 });
             }
             return;
@@ -449,6 +464,8 @@ function createMeteorProjectile(caster, startX, startY, vx, vy, damage, range, o
         stunDuration: options.stunDuration || 0,
         slowDuration: options.slowDuration || 0,
         slowAmount: options.slowAmount || 0,
+        // v2.28.0 万剑诀必定命中：锁定的敌人列表
+        lockedEnemies: options.lockedEnemies || [],
         hitEnemies: []
     });
 }
