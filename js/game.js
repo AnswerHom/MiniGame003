@@ -1646,10 +1646,40 @@ function update(dt) {
             const dist = Math.sqrt(dx * dx + dy * dy);
             
             if (dist > enemy.attackRange) {
-                enemy.x += (dx / dist) * currentSpeed * dt;
-                enemy.y += (dy / dist) * currentSpeed * dt;
+                // v2.29.2 敌人自动绕开障碍物
+                const moveAngle = Math.atan2(dy, dx);
+                const checkDist = 30;
+                const checkX = enemy.x + Math.cos(moveAngle) * checkDist;
+                const checkY = enemy.y + Math.sin(moveAngle) * checkDist;
+                const obstacleAhead = checkObstacleCollision(checkX, checkY, enemy.size);
                 
-                // 障碍物碰撞
+                let finalAngle = moveAngle;
+                if (obstacleAhead) {
+                    // 有障碍物，尝试向左或向右绕行
+                    let bestAngle = moveAngle;
+                    let found = false;
+                    
+                    // 尝试左右两个方向
+                    for (const dir of [-1, 1]) {
+                        for (let angleOffset = 0.3; angleOffset <= 1.5; angleOffset += 0.3) {
+                            const testAngle = moveAngle + dir * angleOffset;
+                            const testX = enemy.x + Math.cos(testAngle) * 40;
+                            const testY = enemy.y + Math.sin(testAngle) * 40;
+                            if (!checkObstacleCollision(testX, testY, enemy.size)) {
+                                bestAngle = testAngle;
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (found) break;
+                    }
+                    finalAngle = bestAngle;
+                }
+                
+                enemy.x += Math.cos(finalAngle) * currentSpeed * dt;
+                enemy.y += Math.sin(finalAngle) * currentSpeed * dt;
+                
+                // 障碍物碰撞（备用检测）
                 const obs = checkObstacleCollision(enemy.x, enemy.y, enemy.size);
                 if (obs) {
                     resolveObstacleCollision(enemy, obs);
