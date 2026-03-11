@@ -1471,27 +1471,36 @@ function update(dt) {
                 }
             });
             
-            // 1. 大招单独判断 - 冷却完毕就释放（必须在攻击范围内）
-            ultimateSkills.forEach(skillName => {
-                const cooldown = player.skillCooldowns && player.skillCooldowns[skillName];
-                // v2.28.0 技能冷却好了才能释放
-                if (cooldown !== undefined && cooldown > 0) return;
+            // v2.28.0 技能释放逻辑优化：大招优先
+            let skillReleased = false;  // 记录是否已释放技能
+            
+            // 1. 大招优先检测 - 冷却完毕就释放，忽略普通技能
+            if (ultimateSkills.length > 0) {
+                const readyUltimateSkills = ultimateSkills.filter(skillName => {
+                    const cooldown = player.skillCooldowns && player.skillCooldowns[skillName];
+                    return cooldown === undefined || cooldown <= 0;
+                });
                 
-                const target = findNearestEnemy(player);
-                if (target) {
-                    const skill = SKILLS[skillName];
-                    const attackRange = skill && skill.range ? skill.range : 150;
-                    const distToTarget = Math.sqrt((target.x - player.x) ** 2 + (target.y - player.y) ** 2);
-                    
-                    // 只有在攻击范围内才释放技能
-                    if (distToTarget <= attackRange) {
-                        usePlayerSkill(player, skillName);
+                if (readyUltimateSkills.length > 0) {
+                    // 大招就绪，优先释放第一个就绪的大招
+                    const target = findNearestEnemy(player);
+                    if (target) {
+                        const skillName = readyUltimateSkills[0];
+                        const skill = SKILLS[skillName];
+                        const attackRange = skill && skill.range ? skill.range : 150;
+                        const distToTarget = Math.sqrt((target.x - player.x) ** 2 + (target.y - player.y) ** 2);
+                        
+                        // 只有在攻击范围内才释放技能
+                        if (distToTarget <= attackRange) {
+                            usePlayerSkill(player, skillName);
+                            skillReleased = true;
+                        }
                     }
                 }
-            });
+            }
             
-            // 2. 普通技能按顺序循环释放，基于攻速（在攻击范围内才释放）
-            if (normalSkills.length > 0) {
+            // 2. 大招未就绪时，释放普通技能（按原有顺序）
+            if (!skillReleased && normalSkills.length > 0) {
                 const timeSinceLastSkill = game.time - player.lastSkillTime;
                 
                 if (timeSinceLastSkill >= skillInterval) {
