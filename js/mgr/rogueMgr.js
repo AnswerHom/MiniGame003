@@ -128,133 +128,14 @@ function generateCardOptions() {
     }
 }
 
-// 抽卡（v2.8.0 按队伍英雄筛选卡牌池，v2.12.0 添加技能卡处理）
-function battleDrawCard() {
-    if (game.gold < battleRogueState.currentCost) {
-        console.log('金币不足');
-        return;
-    }
-    
-    game.gold -= battleRogueState.currentCost;
-    battleRogueState.drawCount++;
-    
-    // 费用递增：第1次100，第2次150，第3次225...
-    battleRogueState.currentCost = Math.floor(
-        BATTLE_ROGUE_CONFIG.baseCost * Math.pow(BATTLE_ROGUE_CONFIG.costGrowth, battleRogueState.drawCount)
-    );
-    
-    // v2.12.0 获取队伍中所有英雄的卡牌（包括技能卡和强化卡）
-    // 使用 game.players 获取当前战斗中的角色
-    const teamMembers = game.players.map(p => p.name);
-    const actualTeamMembers = teamMembers.length > 0 ? teamMembers : TeamManager.getMembers();
-    
-    const teamCards = [];
-    const unlockedSkillCards = [];
-    
-    for (const cardName in CARD_DATA) {
-        const cardData = CARD_DATA[cardName];
-        
-        // v2.12.0 技能卡处理
-        if (cardData.effect === 'equipSkill') {
-            if (actualTeamMembers.includes(cardData.char)) {
-                const unlocked = game.unlockedSkills[cardData.char] || [];
-                if (!unlocked.includes(cardData.skill)) {
-                    unlockedSkillCards.push(cardName);
-                }
-            }
-            continue;
-        }
-        
-        // 强化卡处理
-        // v2.20.0 修复：遍历队伍角色，检查其已解锁技能列表
-        for (const charName of actualTeamMembers) {
-            const unlocked = game.unlockedSkills[charName] || [];
-            if (unlocked.includes(cardData.skill)) {
-                teamCards.push(cardName);
-                break;
-            }
-        }
-    }
-    
-    // 优先从技能卡池抽取
-    const cardPool = unlockedSkillCards.length > 0 ? unlockedSkillCards : teamCards;
-    const finalPool = cardPool.length > 0 ? cardPool : Object.keys(CARD_DATA);
-    
-    // v2.23.1 过滤掉已拥有的卡牌
-    let availablePool = finalPool;
-    if (game.playerCards) {
-        availablePool = finalPool.filter(c => !game.playerCards.includes(c));
-    }
-    
-    // 随机获得1张卡牌
-    if (availablePool.length === 0) {
-        battleRogueState.selectedCard = '无可用卡牌';
-        return;
-    }
-    const drawnCard = availablePool[Math.floor(Math.random() * availablePool.length)];
-    const cardData = CARD_DATA[drawnCard];
-    
-    // v2.12.0 技能抽取 - 检查是否抽到技能卡
-    if (cardData.effect === 'equipSkill') {
-        const charName = cardData.char;
-        const skillName = cardData.skill;
-        
-        // 解锁技能
-        if (!game.unlockedSkills[charName]) {
-            game.unlockedSkills[charName] = [];
-        }
-        if (!game.unlockedSkills[charName].includes(skillName)) {
-            game.unlockedSkills[charName].push(skillName);
-        }
-        
-        // 将技能装备到队伍中对应角色的技能栏
-        game.players.forEach(player => {
-            if (player.name === charName && player.skills) {
-                if (!player.skills.includes(skillName)) {
-                    player.skills.push(skillName);
-                }
-            }
-        });
-        
-        // 显示抽卡结果
-        battleRogueState.selectedCard = '获得技能: ' + skillName;
-    } else {
-        // 添加到玩家卡牌库
-        if (!game.playerCards) game.playerCards = [];
-        if (!game.playerCards.includes(drawnCard)) {
-            game.playerCards.push(drawnCard);
-        }
-        
-        // 显示抽卡结果
-        battleRogueState.selectedCard = drawnCard;
-    }
-    
-    battleRogueState.showResult = true;
-    setTimeout(() => {
-        battleRogueState.showResult = false;
-        battleRogueState.active = false;
-    }, 2000);
-}
-
-// 刷新卡牌
-function battleRefreshCards() {
-    if (game.gold < battleRogueState.refreshCost) {
-        console.log('金币不足');
-        return;
-    }
-    
-    game.gold -= battleRogueState.refreshCost;
-    generateCardOptions();
-}
-
 // 处理战斗肉鸽点击
 function handleBattleRogueClick(x, y) {
     if (!battleRogueState.active) return;
     
     // v2.28.3 防重复点击：如果是锁定状态，不处理点击
+    // v2.30.0 优化：选中卡牌后立即锁定，直到界面关闭
     if (battleRogueState.clickLocked) return;
     battleRogueState.clickLocked = true;
-    setTimeout(() => { battleRogueState.clickLocked = false; }, 300);
     
     // v2.14.0 卡牌尺寸增大
     const cardWidth = 140;
@@ -316,25 +197,12 @@ function handleBattleRogueClick(x, y) {
             setTimeout(() => {
                 battleRogueState.showResult = false;
                 battleRogueState.active = false;
+                battleRogueState.clickLocked = false;  // v2.30.0 界面关闭后解锁
             }, 1500);
             return;
         }
     }
     
-    // v2.14.0 检查抽卡按钮 - 新尺寸和位置
-    const btnWidth = 160;
-    const btnHeight = 50;
-    const drawBtnX = game.width / 2 - btnWidth - 20;
-    const drawBtnY = game.height / 2 + 200 / 2 + 40;  // cardHeight/2 + margin
-    if (x >= drawBtnX && x <= drawBtnX + btnWidth && y >= drawBtnY && y <= drawBtnY + btnHeight) {
-        battleDrawCard();
-        return;
-    }
-    
-    // 检查刷新按钮
-    const refreshBtnX = game.width / 2 + 20;
-    if (x >= refreshBtnX && x <= refreshBtnX + btnWidth && y >= drawBtnY && y <= drawBtnY + btnHeight) {
-        battleRefreshCards();
-        return;
-    }
+    // v2.30.0 点击空白处不解锁
+    battleRogueState.clickLocked = false;
 }

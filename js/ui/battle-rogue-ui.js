@@ -175,36 +175,6 @@ function drawBattleRogue() {
         }
     }
     
-    // 抽卡按钮 - 增大
-    const btnWidth = 160;
-    const btnHeight = 50;
-    const drawBtnX = game.width / 2 - btnWidth - 20;
-    const drawBtnY = game.height / 2 + cardHeight / 2 + 40;
-    
-    // 按钮阴影
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-    ctx.shadowBlur = 10;
-    ctx.shadowOffsetY = 3;
-    ctx.fillStyle = game.gold >= battleRogueState.currentCost ? '#4a5568' : '#666';
-    ctx.fillRect(drawBtnX, drawBtnY, btnWidth, btnHeight);
-    ctx.shadowBlur = 0;
-    
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 20px Microsoft YaHei';
-    ctx.fillText('🎴 抽卡 ' + battleRogueState.currentCost + '💰', drawBtnX + btnWidth / 2, drawBtnY + 32);
-    
-    // 刷新按钮
-    const refreshBtnX = game.width / 2 + 20;
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-    ctx.shadowBlur = 10;
-    ctx.shadowOffsetY = 3;
-    ctx.fillStyle = game.gold >= battleRogueState.refreshCost ? '#4a5568' : '#666';
-    ctx.fillRect(refreshBtnX, drawBtnY, btnWidth, btnHeight);
-    ctx.shadowBlur = 0;
-    
-    ctx.fillStyle = '#fff';
-    ctx.fillText('🔄 刷新 ' + battleRogueState.refreshCost + '💰', refreshBtnX + btnWidth / 2, drawBtnY + 32);
-    
     // 恢复 Canvas 状态
     ctx.restore();
 }
