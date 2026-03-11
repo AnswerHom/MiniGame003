@@ -1673,51 +1673,95 @@ function update(dt) {
     game.projectiles = game.projectiles.filter(p => {
         // v2.19.0 御剑术追踪逻辑
         // v2.25.0 优化：穿透后自动寻下一个目标
+        // v2.29.0 优化：锁定目标自动寻路追踪
         if (p.isHoming) {
             // 初始化穿透敌人列表
             if (!p.hitEnemies) p.hitEnemies = [];
             
-            // v2.25.0 简单的避障逻辑：检测前方是否有障碍物
-            if (p.canPassObstacle) {
-                const checkDist = 50;
-                const checkX = p.x + Math.cos(p.angle) * checkDist;
-                const checkY = p.y + Math.sin(p.angle) * checkDist;
-                const obstacleAhead = checkObstacleCollision(checkX, checkY, 10);
-                if (obstacleAhead) {
-                    // 有障碍物，尝试绕过（向两侧偏转）
-                    const deflectAngle = p.angle + (Math.random() > 0.5 ? 0.5 : -0.5);
-                    p.angle = deflectAngle;
-                    p.vx = Math.cos(deflectAngle) * Math.sqrt(p.vx * p.vx + p.vy * p.vy);
-                    p.vy = Math.sin(deflectAngle) * Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+            // v2.29.0 优先使用锁定的目标进行追踪
+            let target = null;
+            if (p.lockedTarget && p.lockedTarget.alive) {
+                // 检查锁定目标是否已被穿透
+                if (!p.hitEnemies.includes(p.lockedTarget)) {
+                    target = p.lockedTarget;
                 }
             }
             
-            // 寻找最近的目标（排除已穿透的敌人）
-            let nearestEnemy = null;
-            let nearestDist = Infinity;
-            game.enemies.forEach(enemy => {
-                if (!enemy.alive) return;
-                // v2.25.0 排除已穿透的敌人
-                if (p.hitEnemies.includes(enemy)) return;
-                
-                const dx = enemy.x - p.x;
-                const dy = enemy.y - p.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist < nearestDist && dist > 30) {
-                    nearestDist = dist;
-                    nearestEnemy = enemy;
-                }
-            });
+            // 如果锁定目标无效或已被穿透，寻找下一个最近的目标
+            if (!target) {
+                let nearestDist = Infinity;
+                game.enemies.forEach(enemy => {
+                    if (!enemy.alive) return;
+                    // 排除已穿透的敌人
+                    if (p.hitEnemies.includes(enemy)) return;
+                    
+                    const dx = enemy.x - p.x;
+                    const dy = enemy.y - p.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < nearestDist && dist > 30) {
+                        nearestDist = dist;
+                        target = enemy;
+                    }
+                });
+                // 更新锁定目标
+                p.lockedTarget = target;
+            }
             
-            // 如果找到目标，更新方向
-            if (nearestEnemy && nearestDist < p.range) {
-                const dx = nearestEnemy.x - p.x;
-                const dy = nearestEnemy.y - p.y;
-                const angle = Math.atan2(dy, dx);
-                const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
-                p.vx = Math.cos(angle) * speed;
-                p.vy = Math.sin(angle) * speed;
-                p.angle = angle;  // v2.25.0 保存角度用于避障
+            // v2.29.0 智能寻路：如果有目标，持续追踪并绕开障碍物
+            if (target) {
+                const dx = target.x - p.x;
+                const dy = target.y - p.y;
+                const distToTarget = Math.sqrt(dx * dx + dy * dy);
+                
+                // 检测前方是否有障碍物
+                if (p.canPassObstacle) {
+                    const checkDist = 60;
+                    const checkX = p.x + Math.cos(p.angle) * checkDist;
+                    const checkY = p.y + Math.sin(p.angle) * checkDist;
+                    const obstacleAhead = checkObstacleCollision(checkX, checkY, 10);
+                    
+                    if (obstacleAhead) {
+                        // 有障碍物，尝试绕行：计算绕开障碍物的方向
+                        // 向左右两侧尝试找到通路
+                        let bestAngle = p.angle;
+                        let bestDist = Infinity;
+                        
+                        // 尝试多个角度，找到最接近目标且无障碍的方向
+                        for (let angleOffset = -1.2; angleOffset <= 1.2; angleOffset += 0.3) {
+                            const testAngle = Math.atan2(dy, dx) + angleOffset;
+                            const testX = p.x + Math.cos(testAngle) * 80;
+                            const testY = p.y + Math.sin(testAngle) * 80;
+                            
+                            if (!checkObstacleCollision(testX, testY, 10)) {
+                                // 无障碍，选择角度差最小的
+                                const angleDiff = Math.abs(angleOffset);
+                                if (angleDiff < bestDist) {
+                                    bestDist = angleDiff;
+                                    bestAngle = testAngle;
+                                }
+                            }
+                        }
+                        
+                        p.angle = bestAngle;
+                        const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+                        p.vx = Math.cos(bestAngle) * speed;
+                        p.vy = Math.sin(bestAngle) * speed;
+                    } else {
+                        // 无障碍，直接追踪目标
+                        const angle = Math.atan2(dy, dx);
+                        const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+                        p.vx = Math.cos(angle) * speed;
+                        p.vy = Math.sin(angle) * speed;
+                        p.angle = angle;
+                    }
+                } else {
+                    // 不允许穿墙，直接追踪目标
+                    const angle = Math.atan2(dy, dx);
+                    const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+                    p.vx = Math.cos(angle) * speed;
+                    p.vy = Math.sin(angle) * speed;
+                    p.angle = angle;
+                }
             }
         }
         

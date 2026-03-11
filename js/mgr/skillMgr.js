@@ -149,7 +149,10 @@ const SkillManager = {
                             pierce: cardPierce,
                             maxPierce: isHoming ? 5 : 0,  // v2.25.0 御剑术最多穿透5个目标
                             stunDuration: cardStun,
-                            canPassObstacle: isHoming
+                            canPassObstacle: isHoming,
+                            // v2.29.0 御剑术锁定目标追踪
+                            lockTarget: isHoming,
+                            targets: targets
                         });
                     }, i * 100);  // 100ms = 0.1秒
                 }
@@ -173,7 +176,10 @@ const SkillManager = {
                         pierce: cardPierce,
                         maxPierce: isHoming ? 5 : 0,  // v2.25.0 御剑术最多穿透5个目标
                         stunDuration: cardStun,
-                        canPassObstacle: isHoming
+                        canPassObstacle: isHoming,
+                        // v2.29.0 御剑术锁定目标追踪
+                        lockTarget: isHoming,
+                        targets: targets
                     });
                 }
             } else {
@@ -190,7 +196,10 @@ const SkillManager = {
                     pierce: cardPierce,
                     maxPierce: isHoming ? 5 : 0,  // v2.25.0 御剑术最多穿透5个目标
                     stunDuration: cardStun,
-                    canPassObstacle: isHoming
+                    canPassObstacle: isHoming,
+                    // v2.29.0 御剑术锁定目标追踪
+                    lockTarget: isHoming,
+                    targets: targets
                 });
             }
         }
@@ -382,6 +391,23 @@ function createProjectile(caster, angle, damage, range, options = {}) {
     // 李逍遥的技能使用剑形投射物
     const isLiXiaoyao = caster.name === '李逍遥';
     
+    // v2.29.0 御剑术锁定目标
+    let lockedTarget = null;
+    if (options.lockTarget && options.targets && options.targets.length > 0) {
+        // 锁定距离最近的敌人
+        let nearestDist = Infinity;
+        options.targets.forEach(target => {
+            if (!target.alive) return;
+            const dx = target.x - caster.x;
+            const dy = target.y - caster.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < nearestDist) {
+                nearestDist = dist;
+                lockedTarget = target;
+            }
+        });
+    }
+    
     game.projectiles.push({
         x: caster.x,
         y: caster.y,
@@ -396,10 +422,11 @@ function createProjectile(caster, angle, damage, range, options = {}) {
         // 飞剑属性
         isSword: isLiXiaoyao || options.isSword || false,
         isGold: options.isGold || false,
+        // v2.29.0 御剑术锁定目标
+        lockedTarget: lockedTarget,
+        hitEnemies: [],
         length: options.length || 30,
         width: options.width || 8,
-        // v2.25.1 御剑术穿透记录
-        hitEnemies: [],
         swordColor: options.swordColor || '#3182ce',  // v2.5.0 剑颜色
         // v2.20.0 卡牌效果
         pierce: options.pierce || 0,
@@ -413,6 +440,23 @@ function createProjectileAt(caster, startX, startY, angle, damage, range, option
     const life = range / speed;
     
     const isLiXiaoyao = caster.name === '李逍遥';
+    
+    // v2.29.0 御剑术锁定目标
+    let lockedTarget = null;
+    if (options.lockTarget && options.targets && options.targets.length > 0) {
+        // 锁定距离最近的敌人
+        let nearestDist = Infinity;
+        options.targets.forEach(target => {
+            if (!target.alive) return;
+            const dx = target.x - caster.x;
+            const dy = target.y - caster.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < nearestDist) {
+                nearestDist = dist;
+                lockedTarget = target;
+            }
+        });
+    }
     
     game.projectiles.push({
         x: startX,
@@ -435,6 +479,8 @@ function createProjectileAt(caster, startX, startY, angle, damage, range, option
         canPassObstacle: options.canPassObstacle || false,
         // v2.25.1 御剑术穿透记录
         hitEnemies: [],
+        // v2.29.0 御剑术锁定目标
+        lockedTarget: lockedTarget,
     });
 }
 
