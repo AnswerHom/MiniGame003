@@ -11,7 +11,9 @@ const battleRogueState = {
     cardOptions: 3,          // 每次显示3张卡牌
     // v2.16.0 点击收费（斐波那契数列）
     clickCost: 100,          // 点击进入费用
-    lastClickCost: 0         // 上一次费用（用于斐波那契）
+    lastClickCost: 0,       // 上一次费用（用于斐波那契）
+    // v2.28.3 防重复点击
+    clickLocked: false       // 点击锁定标志
 };
 
 // 战斗肉鸽配置
@@ -32,12 +34,16 @@ function initBattleRogue() {
     // v2.16.0 点击收费初始化（斐波那契：100, 150, 250, 400...）
     battleRogueState.clickCost = 100;
     battleRogueState.lastClickCost = 50;
+    // v2.28.3 重置点击锁定
+    battleRogueState.clickLocked = false;
 }
 
 // 打开战斗肉鸽界面
 function openBattleRogue() {
     battleRogueState.active = true;
     battleRogueState.selectedCard = null;
+    // v2.28.3 重置点击锁定
+    battleRogueState.clickLocked = false;
     generateCardOptions();
 }
 
@@ -244,6 +250,11 @@ function battleRefreshCards() {
 // 处理战斗肉鸽点击
 function handleBattleRogueClick(x, y) {
     if (!battleRogueState.active) return;
+    
+    // v2.28.3 防重复点击：如果是锁定状态，不处理点击
+    if (battleRogueState.clickLocked) return;
+    battleRogueState.clickLocked = true;
+    setTimeout(() => { battleRogueState.clickLocked = false; }, 300);
     
     // v2.14.0 卡牌尺寸增大
     const cardWidth = 140;
