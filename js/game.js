@@ -965,6 +965,37 @@ function startGame() {
     game.lastTime = performance.now();
 }
 
+// v2.28.1 万剑诀粒子爆炸效果
+function createMeteorExplosion(x, y) {
+    // 创建多个粒子
+    const particleCount = 12;
+    for (let i = 0; i < particleCount; i++) {
+        const angle = (Math.PI * 2 / particleCount) * i + Math.random() * 0.5;
+        const speed = 100 + Math.random() * 150;
+        game.effects.push({
+            type: 'meteorExplosion',
+            x: x,
+            y: y,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            life: 0.4,
+            maxLife: 0.4,
+            size: 3 + Math.random() * 4,
+            color: Math.random() > 0.5 ? 'rgba(255, 215, 0, 1)' : 'rgba(255, 165, 0, 1)'
+        });
+    }
+    // 添加一个中心闪光效果
+    game.effects.push({
+        type: 'meteorFlash',
+        x: x,
+        y: y,
+        life: 0.15,
+        maxLife: 0.15,
+        size: 40,
+        color: '#FFFFFF'
+    });
+}
+
 // v2.13.0 飘字系统
 // 添加飘字
 function addFloatingText(x, y, text, color, size = 16, isCrit = false) {
@@ -1683,10 +1714,14 @@ function update(dt) {
         
         // v2.27.0 万剑诀自动爆炸逻辑
         // v2.28.0 万剑诀必定命中：使用锁定敌人列表
+        // v2.28.1 万剑诀粒子爆炸效果
         if (p.isMeteor) {
             const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
             // 当速度降低到一定程度时，认为到达目标位置，触发范围伤害
             if (speed < 50 || p.life <= 0.05) {
+                // v2.28.1 万剑诀粒子爆炸效果
+                createMeteorExplosion(p.x, p.y);
+                
                 // v2.28.0 万剑诀必定命中：对锁定的敌人造成伤害
                 if (p.lockedEnemies && p.lockedEnemies.length > 0) {
                     p.lockedEnemies.forEach(e => {
@@ -2293,6 +2328,36 @@ function renderEffects() {
                 ctx.fillText('第 ' + effect.wave + ' 波 完成！', game.width / 2, game.height / 2);
                 ctx.font = '20px Microsoft YaHei';
                 ctx.fillText('+100 金币', game.width / 2, game.height / 2 + 35);
+                break;
+            // v2.28.1 万剑诀粒子爆炸效果
+            case 'meteorExplosion':
+                // 爆炸粒子向外扩散
+                effect.x += effect.vx * 0.016;
+                effect.y += effect.vy * 0.016;
+                const expAlpha = effect.life / effect.maxLife;
+                ctx.globalAlpha = expAlpha;
+                ctx.fillStyle = effect.color;
+                ctx.beginPath();
+                ctx.arc(effect.x, effect.y, effect.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+                break;
+            case 'meteorFlash':
+                // 中心闪光效果
+                const flashAlpha = effect.life / effect.maxLife;
+                // 外圈
+                ctx.globalAlpha = flashAlpha * 0.5;
+                ctx.fillStyle = 'rgba(255, 215, 0, 1)';
+                ctx.beginPath();
+                ctx.arc(effect.x, effect.y, effect.size * (1 - flashAlpha) + 20, 0, Math.PI * 2);
+                ctx.fill();
+                // 内圈
+                ctx.globalAlpha = flashAlpha;
+                ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+                ctx.beginPath();
+                ctx.arc(effect.x, effect.y, effect.size * flashAlpha, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
                 break;
         }
     });
