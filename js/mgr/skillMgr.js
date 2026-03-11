@@ -63,6 +63,7 @@ const SkillManager = {
         const cardStun = skillEffects.stun || 0;
         
         // v2.27.0 万剑诀：5把飞剑斜向下砸
+        // v2.28.3 万剑诀飞剑绕开障碍物（弧线路径）
         if (isMeteors) {
             if (!targets || targets.length === 0) return;
             
@@ -93,10 +94,47 @@ const SkillManager = {
                 const startX = targetX + (Math.random() - 0.5) * meteorRange * 2;
                 const startY = targetY - 200 - Math.random() * 100;
                 
+                // v2.28.3 检测起点到终点之间是否有障碍物
+                let hasObstacleInPath = false;
+                const checkSteps = 10;
+                for (let step = 1; step < checkSteps; step++) {
+                    const checkX = startX + (targetX - startX) * (step / checkSteps);
+                    const checkY = startY + (targetY - startY) * (step / checkSteps);
+                    if (typeof checkObstacleCollision === 'function') {
+                        const obs = checkObstacleCollision(checkX, checkY, 30);
+                        if (obs) {
+                            hasObstacleInPath = true;
+                            break;
+                        }
+                    }
+                }
+                
                 // 飞剑速度（向下砸）
                 const speed = 600;
                 const vx = (targetX - startX) / 0.5 * 0.3;
                 const vy = speed;
+                
+                // v2.28.3 计算绕行路径（如果中间有障碍物）
+                let curvePath = null;
+                if (hasObstacleInPath) {
+                    // 计算中点偏移，生成弧线路径
+                    const midX = (startX + targetX) / 2;
+                    const midY = (startY + targetY) / 2;
+                    // 随机选择向左或向右绕行
+                    const offsetDir = Math.random() > 0.5 ? 1 : -1;
+                    const offsetDist = 80 + Math.random() * 60;
+                    const controlX = midX + offsetDist * offsetDir;
+                    const controlY = midY - 50;
+                    curvePath = {
+                        controlX: controlX,
+                        controlY: controlY,
+                        startX: startX,
+                        startY: startY,
+                        targetX: targetX,
+                        targetY: targetY,
+                        t: 0  // 贝塞尔曲线参数
+                    };
+                }
                 
                 // v2.27.0 创建陨石/飞剑效果
                 // v2.28.0 万剑诀必定命中：传递锁定的敌人列表
@@ -110,8 +148,9 @@ const SkillManager = {
                     stunDuration: cardStun,
                     slowDuration: skillEffects.slow ? 3 : 0,
                     slowAmount: skillEffects.slow || 0,
-                    canPassObstacle: true,  // v2.28.0 万剑诀无视障碍物
-                    lockedEnemies: lockedEnemies  // v2.28.0 万剑诀必定命中
+                    canPassObstacle: !hasObstacleInPath,  // v2.28.3 有绕行路径时不再直接穿障碍物
+                    lockedEnemies: lockedEnemies,  // v2.28.0 万剑诀必定命中
+                    curvePath: curvePath  // v2.28.3 绕行路径
                 });
             }
             return;
@@ -514,6 +553,8 @@ function createMeteorProjectile(caster, startX, startY, vx, vy, damage, range, o
         slowAmount: options.slowAmount || 0,
         // v2.28.0 万剑诀必定命中：锁定的敌人列表
         lockedEnemies: options.lockedEnemies || [],
+        // v2.28.3 绕行路径
+        curvePath: options.curvePath || null,
         hitEnemies: []
     });
 }

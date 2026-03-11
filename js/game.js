@@ -1769,6 +1769,29 @@ function update(dt) {
         p.y += p.vy * dt;
         p.life -= dt;
         
+        // v2.28.3 万剑诀飞剑沿曲线飞行
+        if (p.curvePath) {
+            const cp = p.curvePath;
+            cp.t += dt * 2;  // 曲线进度速度
+            if (cp.t > 1) cp.t = 1;
+            
+            // 二次贝塞尔曲线: B(t) = (1-t)²*P0 + 2(1-t)t*P1 + t²*P2
+            const t = cp.t;
+            const newX = (1-t)*(1-t)*cp.startX + 2*(1-t)*t*cp.controlX + t*t*cp.targetX;
+            const newY = (1-t)*(1-t)*cp.startY + 2*(1-t)*t*cp.controlY + t*t*cp.targetY;
+            
+            // 更新位置
+            const oldX = p.x;
+            const oldY = p.y;
+            p.x = newX;
+            p.y = newY;
+            
+            // 更新速度方向
+            p.vx = (p.x - oldX) / dt;
+            p.vy = (p.y - oldY) / dt;
+            p.angle = Math.atan2(p.vy, p.vx);
+        }
+        
         // v2.27.0 万剑诀自动爆炸逻辑
         // v2.28.0 万剑诀必定命中：使用锁定敌人列表
         // v2.28.1 万剑诀粒子爆炸效果
