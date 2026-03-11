@@ -430,7 +430,9 @@ function createProjectile(caster, angle, damage, range, options = {}) {
         swordColor: options.swordColor || '#3182ce',  // v2.5.0 剑颜色
         // v2.20.0 卡牌效果
         pierce: options.pierce || 0,
-        stunDuration: options.stunDuration || 0
+        stunDuration: options.stunDuration || 0,
+        // v2.21.0 御剑术可以穿越障碍物
+        canPassObstacle: options.canPassObstacle || false
     });
 }
 
