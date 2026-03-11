@@ -1176,6 +1176,10 @@ function createPlayer(characterName) {
                 this.hp = 0;
                 this.alive = false;
             }
+        },
+        // v2.28.2 治疗
+        heal: function(amount) {
+            this.hp = Math.min(this.hp + amount, this.maxHp);
         }
     };
     return player;
