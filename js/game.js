@@ -1707,94 +1707,15 @@ function update(dt) {
                 p.lockedTarget = target;
             }
             
-            // v2.29.0 智能寻路：如果有目标，持续追踪并绕开障碍物
-            // v2.29.1 御剑术弧线绕开障碍物
+            // v2.29.0 御剑术追踪目标
             if (target) {
                 const dx = target.x - p.x;
                 const dy = target.y - p.y;
-                const distToTarget = Math.sqrt(dx * dx + dy * dy);
-                
-                // 持续检测前方障碍物
-                const checkDist = 60;
-                const checkX = p.x + Math.cos(p.angle) * checkDist;
-                const checkY = p.y + Math.sin(p.angle) * checkDist;
-                const obstacleAhead = checkObstacleCollision(checkX, checkY, 10);
-                
-                // v2.29.1 御剑术弧线绕行逻辑
-                if (!p.curvePath && obstacleAhead) {
-                    // 初始化绕行路径
-                    const midX = (p.x + target.x) / 2;
-                    const midY = (p.y + target.y) / 2;
-                    // 判断障碍物在左还是右，选择绕行方向
-                    const obstCheckX = p.x + Math.cos(p.angle + Math.PI/2) * 30;
-                    const obstCheckY = p.y + Math.sin(p.angle + Math.PI/2) * 30;
-                    const obstLeft = checkObstacleCollision(obstCheckX, obstCheckY, 10);
-                    
-                    // 选择绕行方向
-                    let offsetDir = 1;
-                    if (obstLeft) {
-                        offsetDir = -1;
-                    } else {
-                        const obstRight = checkObstacleCollision(
-                            p.x + Math.cos(p.angle - Math.PI/2) * 30,
-                            p.y + Math.sin(p.angle - Math.PI/2) * 30, 10);
-                        if (obstRight) {
-                            offsetDir = 1;
-                        } else {
-                            offsetDir = Math.random() > 0.5 ? 1 : -1;
-                        }
-                    }
-                    
-                    // 计算弧线控制点
-                    const offsetDist = 120;  // 弧度偏移
-                    const controlX = midX + Math.cos(p.angle + Math.PI/2 * offsetDir) * offsetDist;
-                    const controlY = midY + Math.sin(p.angle + Math.PI/2 * offsetDir) * offsetDist;
-                    
-                    p.curvePath = {
-                        controlX: controlX,
-                        controlY: controlY,
-                        startX: p.x,
-                        startY: p.y,
-                        targetX: target.x,
-                        targetY: target.y,
-                        t: 0,
-                        target: target
-                    };
-                }
-                
-                // 如果有弧线路径，继续沿曲线飞行
-                if (p.curvePath) {
-                    const cp = p.curvePath;
-                    cp.t += dt * 1.5;  // 曲线进度
-                    if (cp.t > 1) cp.t = 1;
-                    
-                    const t = cp.t;
-                    const newX = (1-t)*(1-t)*cp.startX + 2*(1-t)*t*cp.controlX + t*t*cp.targetX;
-                    const newY = (1-t)*(1-t)*cp.startY + 2*(1-t)*t*cp.controlY + t*t*cp.targetY;
-                    
-                    // 更新速度方向
-                    const oldX = p.x;
-                    const oldY = p.y;
-                    p.x = newX;
-                    p.y = newY;
-                    
-                    const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
-                    p.vx = (p.x - oldX) / dt;
-                    p.vy = (p.y - oldY) / dt;
-                    p.angle = Math.atan2(p.vy, p.vx);
-                    
-                    // 到达目标后结束曲线
-                    if (cp.t >= 1) {
-                        p.curvePath = null;
-                    }
-                } else {
-                    // 无障碍或无曲线，正常追踪目标
-                    const angle = Math.atan2(dy, dx);
-                    const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
-                    p.vx = Math.cos(angle) * speed;
-                    p.vy = Math.sin(angle) * speed;
-                    p.angle = angle;
-                }
+                const angle = Math.atan2(dy, dx);
+                const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+                p.vx = Math.cos(angle) * speed;
+                p.vy = Math.sin(angle) * speed;
+                p.angle = angle;
             }
         }
         
