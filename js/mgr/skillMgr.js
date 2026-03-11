@@ -188,7 +188,7 @@ const SkillManager = {
                             pierce: cardPierce,
                             maxPierce: isHoming ? 5 : 0,  // v2.25.0 御剑术最多穿透5个目标
                             stunDuration: cardStun,
-                            canPassObstacle: false,  // v2.29.1 御剑术绕开障碍物而非穿过
+                            canPassObstacle: true,  // v2.29.1 御剑术弧线绕开障碍物
                             // v2.29.0 御剑术锁定目标追踪
                             lockTarget: isHoming,
                             targets: targets
@@ -215,7 +215,7 @@ const SkillManager = {
                         pierce: cardPierce,
                         maxPierce: isHoming ? 5 : 0,  // v2.25.0 御剑术最多穿透5个目标
                         stunDuration: cardStun,
-                        canPassObstacle: false,  // v2.29.1 御剑术绕开障碍物而非穿过
+                        canPassObstacle: true,  // v2.29.1 御剑术弧线绕开障碍物
                         // v2.29.0 御剑术锁定目标追踪
                         lockTarget: isHoming,
                         targets: targets
@@ -235,7 +235,7 @@ const SkillManager = {
                     pierce: cardPierce,
                     maxPierce: isHoming ? 5 : 0,  // v2.25.0 御剑术最多穿透5个目标
                     stunDuration: cardStun,
-                    canPassObstacle: false,  // v2.29.1 御剑术绕开障碍物而非穿过
+                    canPassObstacle: true,  // v2.29.1 御剑术弧线绕开障碍物
                     // v2.29.0 御剑术锁定目标追踪
                     lockTarget: isHoming,
                     targets: targets
