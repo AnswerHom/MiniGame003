@@ -1152,11 +1152,19 @@ function createPlayer(characterName) {
         lastAttack: 0,
         alive: true,
         shield: 0,
+        // v2.32.0 护盾破碎回调（用于触发减速效果）
+        onShieldBroken: null,
         // v2.23.1 肉鸽卡牌效果
         cardEffects: {},
+        // v2.32.0 添加护盾
+        addShield: function(amount) {
+            this.shield += amount;
+        },
         // 受伤方法
-        takeDamage: function(damage) {
+        takeDamage: function(damage, attacker) {
             let actualDamage = damage;
+            const oldShield = this.shield;
+            
             // 护盾吸收
             if (this.shield > 0) {
                 if (this.shield >= actualDamage) {
@@ -1166,10 +1174,37 @@ function createPlayer(characterName) {
                     actualDamage -= this.shield;
                     this.shield = 0;
                 }
+                
+                // v2.32.0 护盾破碎时触发减速效果
+                if (oldShield > 0 && this.shield === 0 && this.onShieldBroken) {
+                    this.onShieldBroken();
+                }
             }
+            
             // v2.20.0 伤害减免
             const damageReduction = this.damageReduction || 0;
             actualDamage = actualDamage * (1 - damageReduction);
+            
+            // v2.32.0 反射护盾效果
+            if (attacker && this.cardEffects) {
+                // 遍历所有技能的反射效果
+                for (let skillName in this.cardEffects) {
+                    const effects = this.cardEffects[skillName];
+                    if (effects.reflect > 0) {
+                        const reflectDamage = damage * effects.reflect;
+                        if (attacker.hp !== undefined) {
+                            attacker.hp -= reflectDamage;
+                            if (attacker.hp <= 0) {
+                                attacker.alive = false;
+                                attacker.hp = 0;
+                                game.gold += attacker.exp || 1;
+                            }
+                            addFloatingText(attacker.x, attacker.y - 20, Math.floor(reflectDamage), '#ff6666', 14);
+                        }
+                    }
+                }
+            }
+            
             // 扣血
             this.hp -= actualDamage;
             if (this.hp <= 0) {
@@ -1222,7 +1257,11 @@ function applyCardEffects() {
                     stun: 0,
                     pierce: 0,
                     range: 0,
-                    duration: 0
+                    duration: 0,
+                    hot: 0,           // v2.32.0 持续治疗
+                    reflect: 0,        // v2.32.0 反射护盾
+                    slowOnBreak: 0,    // v2.32.0 护盾破碎减速
+                    slowDuration: 0   // v2.32.0 减速持续时间
                 };
             }
             
@@ -1285,9 +1324,35 @@ function applyCardEffects() {
                     // 持续时间加成 - 只对指定技能
                     skillEffects.duration += value;
                     break;
+                case 'hot':
+                    // v2.32.0 持续治疗 - 只对指定技能
+                    skillEffects.hot += value;
+                    break;
+                case 'reflect':
+                    // v2.32.0 反射护盾 - 只对指定技能
+                    skillEffects.reflect += value;
+                    break;
+                case 'slowOnBreak':
+                    // v2.32.0 护盾破碎减速 - 只对指定技能
+                    skillEffects.slowOnBreak += value;
+                    break;
                 // 其他效果可以继续扩展
             }
         });
+    });
+    
+    // v2.32.0 应用卡牌的额外属性（如 slowDuration）
+    game.playerCards.forEach(cardName => {
+        const cardData = CARD_DATA[cardName];
+        if (!cardData) return;
+        
+        const skillName = cardData.skill;
+        if (!player.cardEffects[skillName]) return;
+        
+        // v2.32.0 处理 slow 的持续时间（从卡牌数据中读取）
+        if (cardData.effect === 'slow' && cardData.duration) {
+            player.cardEffects[skillName].slowDuration = cardData.duration;
+        }
     });
 }
 
@@ -1320,7 +1385,11 @@ function applySingleCardEffect(player, cardName) {
             stun: 0,
             pierce: 0,
             range: 0,
-            duration: 0
+            duration: 0,
+            hot: 0,           // v2.32.0 持续治疗
+            reflect: 0,        // v2.32.0 反射护盾
+            slowOnBreak: 0,    // v2.32.0 护盾破碎减速
+            slowDuration: 0   // v2.32.0 减速持续时间
         };
     }
     
@@ -1369,6 +1438,26 @@ function applySingleCardEffect(player, cardName) {
         case 'duration':
             skillEffects.duration += value;
             break;
+        case 'hot':
+            // v2.32.0 持续治疗
+            skillEffects.hot += value;
+            break;
+        case 'reflect':
+            // v2.32.0 反射护盾
+            skillEffects.reflect += value;
+            break;
+        case 'slowOnBreak':
+            // v2.32.0 护盾破碎减速
+            skillEffects.slowOnBreak += value;
+            break;
+    }
+    
+    // v2.32.0 处理 slow 的持续时间（从卡牌数据中读取）
+    if (cardData.effect === 'slow' && cardData.duration) {
+        if (!player.cardEffects[skillName]) {
+            player.cardEffects[skillName] = {};
+        }
+        player.cardEffects[skillName].slowDuration = cardData.duration;
     }
 }
 
@@ -1443,6 +1532,24 @@ function update(dt) {
     // 更新玩家
     game.players.forEach(player => {
         if (!player.alive) return;
+        
+        // v2.32.0 处理持续治疗效果（hot）
+        if (player.hotEffects && player.hotEffects.length > 0) {
+            player.hotEffects = player.hotEffects.filter(hot => {
+                hot.timer += dt;
+                hot.duration -= dt;
+                
+                // 每秒治疗一次
+                if (hot.timer >= hot.interval) {
+                    player.heal(hot.amount);
+                    hot.timer = 0;
+                    // 添加治疗飘字
+                    addFloatingText(player.x, player.y - 30, '+' + Math.floor(hot.amount), '#44ff44', 14);
+                }
+                
+                return hot.duration > 0;
+            });
+        }
         
         // 更新技能冷却
         if (player.skillCooldowns) {
@@ -2182,8 +2289,8 @@ function playerAttack(player, target) {
 
 // 敌人攻击
 function enemyAttack(enemy, target) {
-    // 使用角色的受伤方法（处理护盾）
-    target.takeDamage(enemy.attack);
+    // 使用角色的受伤方法（处理护盾），传入攻击者以触发反射效果
+    target.takeDamage(enemy.attack, enemy);
 }
 
 // 渲染特效

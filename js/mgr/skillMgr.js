@@ -146,7 +146,7 @@ const SkillManager = {
                     swordColor: '#FFD700',
                     isMeteor: true,
                     stunDuration: cardStun,
-                    slowDuration: skillEffects.slow ? 3 : 0,
+                    slowDuration: skillEffects.slowDuration || (skillEffects.slow ? 3 : 0),  // v2.32.0 优先读取卡牌的持续时间
                     slowAmount: skillEffects.slow || 0,
                     canPassObstacle: !hasObstacleInPath,  // v2.28.3 有绕行路径时不再直接穿障碍物
                     lockedEnemies: lockedEnemies,  // v2.28.0 万剑诀必定命中
@@ -368,6 +368,19 @@ const SkillManager = {
                 value: healAmount,
                 life: 1
             });
+            
+            // v2.32.0 持续治疗效果（hot）
+            if (skillEffects.hot > 0) {
+                // 创建一个持续治疗效果
+                if (!target.hotEffects) target.hotEffects = [];
+                target.hotEffects.push({
+                    amount: healAmount * skillEffects.hot,  // 每次治疗量
+                    interval: 1,  // 每秒触发一次
+                    timer: 0,
+                    duration: skill.duration || 5,  // 持续时间
+                    maxDuration: skill.duration || 5
+                });
+            }
         });
     },
     
@@ -400,6 +413,24 @@ const SkillManager = {
                 value: shieldAmount,
                 life: 1
             });
+            
+            // v2.32.0 护盾破碎时减速敌人（slowOnBreak）
+            if (skillEffects.slowOnBreak > 0) {
+                target.onShieldBroken = function() {
+                    // 对周围敌人施加减速效果
+                    const slowRadius = skill.range * 2;  // 减速范围
+                    game.enemies.forEach(enemy => {
+                        if (!enemy.alive) return;
+                        const dx = enemy.x - target.x;
+                        const dy = enemy.y - target.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        if (dist < slowRadius) {
+                            enemy.slowTimer = 3;  // 减速3秒
+                            enemy.slowAmount = skillEffects.slowOnBreak;
+                        }
+                    });
+                };
+            }
         });
     },
     
