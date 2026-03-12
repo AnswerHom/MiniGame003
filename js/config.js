@@ -39,7 +39,7 @@ const CHARACTERS = {
         name: '李逍遥',
         role: '剑客',
         hp: 800,
-        attack: 120,
+        attack: 100,  // v2.31.0: 120 → 100
         attackSpeed: 1.0,
         moveSpeed: 85,
         attackRange: 80,

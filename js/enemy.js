@@ -44,8 +44,8 @@ const ENEMY_TYPES = {
     // v2.3.2 新增怪物
     蛤蟆: {
         name: '蛤蟆',
-        hp: 300,  // v2.6.0: 200 → v2.7.0: 300
-        attack: 15,
+        hp: 450,  // v2.31.0: 300 → 450 (+50%)
+        attack: 22,  // v2.31.0: 15 → 22 (+50%)
         attackSpeed: 0.5,
         moveSpeed: 25,
         attackRange: 30,
@@ -60,8 +60,8 @@ const ENEMY_TYPES = {
     },
     毒蜂: {
         name: '毒蜂',
-        hp: 120,  // v2.6.0: 50 → v2.7.0: 120
-        attack: 25,
+        hp: 240,  // v2.31.0: 120 → 240 (+100%)
+        attack: 38,  // v2.31.0: 25 → 38 (+50%)
         attackSpeed: 1.5,
         moveSpeed: 60,
         attackRange: 20,
@@ -73,8 +73,8 @@ const ENEMY_TYPES = {
     },
     骷髅: {
         name: '骷髅',
-        hp: 180,  // v2.6.0: 120 → v2.7.0: 180
-        attack: 30,
+        hp: 270,  // v2.31.0: 180 → 270 (+50%)
+        attack: 45,  // v2.31.0: 30 → 45 (+50%)
         attackSpeed: 1.0,
         moveSpeed: 35,
         attackRange: 40,
@@ -88,8 +88,8 @@ const ENEMY_TYPES = {
     },
     僵尸: {
         name: '僵尸',
-        hp: 400,  // v2.6.0: 250 → v2.7.0: 400
-        attack: 20,
+        hp: 600,  // v2.31.0: 400 → 600 (+50%)
+        attack: 30,  // v2.31.0: 20 → 30 (+50%)
         attackSpeed: 0.4,
         moveSpeed: 20,
         attackRange: 30,
@@ -104,8 +104,8 @@ const ENEMY_TYPES = {
     },
     狐狸: {
         name: '狐狸',
-        hp: 150,  // v2.6.0: 80 → v2.7.0: 150
-        attack: 40,
+        hp: 300,  // v2.31.0: 150 → 300 (+100%)
+        attack: 60,  // v2.31.0: 40 → 60 (+50%)
         attackSpeed: 0.8,
         moveSpeed: 40,
         attackRange: 100,
@@ -141,8 +141,8 @@ const EnemySpawner = {
             return 40 + Math.floor(Math.random() * 11); // 40-50 (boss wave)
         },
         // 数值成长（每波）
-        hpGrowth: 1.08,     // 每波+8%
-        attackGrowth: 1.06, // 每波+6%
+        hpGrowth: 1.12,     // v2.31.0: 每波+12%
+        attackGrowth: 1.10, // v2.31.0: 每波+10%
         speedGrowth: 1.01,  // 每波+1%
         maxSpeedBonus: 0.30 // 上限+30%
     },
