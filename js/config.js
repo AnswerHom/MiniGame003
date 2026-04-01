@@ -198,23 +198,23 @@ const CARD_DATA = {
     '快速复活': { skill: '圣灵复活', effect: 'cooldown', value: -10, rarity: '稀有', desc: '冷却-10秒' },
     '复活传承': { skill: '圣灵复活', effect: 'reviveHp', value: 0.5, rarity: '稀有', desc: '复活时恢复50%生命' },
     
-    // 阿奴 - 风雪冰天卡牌
-    '寒冰之心': { skill: '风雪冰天', effect: 'damage', value: 0.2, rarity: '普通', desc: '伤害+20%' },
-    '冰封千里': { skill: '风雪冰天', effect: 'range', value: 0.3, rarity: '稀有', desc: '扇形范围+30%' },
-    '冰晶绽放': { skill: '风雪冰天', effect: 'projectileCount', value: 3, rarity: '史诗', desc: '冰锥数量+3' },
-    '绝对零度': { skill: '风雪冰天', effect: 'slow', value: 0.5, rarity: '传说', desc: '减速效果+50%' },
+    // 阿奴 - 风雪冰天卡牌 v2.32.0
+    '冰魄银光': { skill: '风雪冰天', effect: 'damage', value: 0.2, rarity: '普通', desc: '伤害+20%' },
+    '寒冰领域': { skill: '风雪冰天', effect: 'range', value: 30, rarity: '稀有', desc: '冰锥射程+30px' },
+    '冰封千里': { skill: '风雪冰天', effect: 'fanAngle', value: 30, rarity: '稀有', desc: '扇形角度60°→90°' },
+    '冰雪加身': { skill: '风雪冰天', effect: 'attackSpeed', value: 0.15, rarity: '史诗', desc: '攻击速度+15%' },
     
-    // 阿奴 - 雷劫卡牌
-    '天雷罚世': { skill: '雷劫', effect: 'damage', value: 0.3, rarity: '普通', desc: '伤害+30%' },
-    '雷云密布': { skill: '雷劫', effect: 'radius', value: 30, rarity: '稀有', desc: '雷电半径+30px' },
-    '连锁闪电': { skill: '雷劫', effect: 'chain', value: 2, rarity: '史诗', desc: '闪电连锁2个目标' },
-    '雷神降世': { skill: '雷劫', effect: 'double', value: 1, rarity: '传说', desc: '双重雷电' },
+    // 阿奴 - 雷劫卡牌 v2.32.0
+    '天雷滚滚': { skill: '雷劫', effect: 'damage', value: 0.3, rarity: '普通', desc: '伤害+30%' },
+    '雷神之怒': { skill: '雷劫', effect: 'radius', value: 20, rarity: '稀有', desc: '雷电半径+20px' },
+    '麻痹之雷': { skill: '雷劫', effect: 'stun', value: 0.5, rarity: '稀有', desc: '命中目标定身0.5秒' },
+    '引雷诀': { skill: '雷劫', effect: 'pierce', value: 1, rarity: '史诗', desc: '雷电可穿透1个目标' },
     
-    // 阿奴 - 阴阳逆转卡牌
-    '太极生两仪': { skill: '阴阳逆转', effect: 'damage', value: 0.3, rarity: '普通', desc: '伤害+30%' },
-    '阴阳交错': { skill: '阴阳逆转', effect: 'range', value: 50, rarity: '稀有', desc: '范围+50px' },
-    '混沌初开': { skill: '阴阳逆转', effect: 'knockback', value: 50, rarity: '史诗', desc: '击退距离+50px' },
-    '逆转乾坤': { skill: '阴阳逆转', effect: 'stun', value: 1, rarity: '传说', desc: '击退时眩晕1秒' },
+    // 阿奴 - 阴阳逆转卡牌 v2.32.0
+    '阴阳相生': { skill: '阴阳逆转', effect: 'damage', value: 0.3, rarity: '普通', desc: '伤害+30%' },
+    '气震山河': { skill: '阴阳逆转', effect: 'range', value: 30, rarity: '稀有', desc: '弹开半径+30px' },
+    '护体神光': { skill: '阴阳逆转', effect: 'shield', value: 0.3, rarity: '稀有', desc: '弹开时获得护盾（吸收30%最大生命值，持续3秒）' },
+    '阴阳轮回': { skill: '阴阳逆转', effect: 'cooldown', value: -10, rarity: '史诗', desc: '大招冷却-10秒' },
     
     // v2.12.0 技能抽取 - 技能卡（抽到后装备到角色）
     '御剑术': { skill: '御剑术', effect: 'equipSkill', rarity: '普通', desc: '装备技能：御剑术', char: '李逍遥' },
@@ -241,9 +241,9 @@ const CARDS = {
     五雷咒: ['雷光普照', '群体治愈', '持续治疗', '雷劫'],
     观音咒: ['金刚护体', '护盾强化', '反射护盾', '水灵护盾'],
     圣灵复活: ['复活祝福', '群体复活', '快速复活', '复活传承'],
-    风雪冰天: ['寒冰之心', '冰封千里', '冰晶绽放', '绝对零度'],
-    雷劫: ['天雷罚世', '雷云密布', '连锁闪电', '雷神降世'],
-    阴阳逆转: ['太极生两仪', '阴阳交错', '混沌初开', '逆转乾坤'],
+    风雪冰天: ['冰魄银光', '寒冰领域', '冰封千里', '冰雪加身'],
+    雷劫: ['天雷滚滚', '雷神之怒', '麻痹之雷', '引雷诀'],
+    阴阳逆转: ['阴阳相生', '气震山河', '护体神光', '阴阳轮回'],
     通用: ['身轻如燕', '铜筋铁骨', '暴击强化', '致命一击'],
     功能: ['冰心玉壶', '观音护体', '起死回生', '灵泉涌现']
 };

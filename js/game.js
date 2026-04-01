@@ -515,11 +515,20 @@ function usePlayerSkill(player, skillName) {
         return;
     }
     
-    // 初始化冷却
+    // 初始化冷却 v2.32.0 检查是否有冷却调整卡牌效果
     if (!player.skillCooldowns) {
         player.skillCooldowns = {};
     }
-    player.skillCooldowns[skillName] = skill.cooldown;
+    
+    // v2.32.0 获取技能卡牌冷却调整效果
+    let cooldownTime = skill.cooldown;
+    if (player.cardEffects && player.cardEffects[skillName]) {
+        const skillEffects = player.cardEffects[skillName];
+        if (skillEffects.cooldown) {
+            cooldownTime += skillEffects.cooldown;
+        }
+    }
+    player.skillCooldowns[skillName] = cooldownTime;
     
     switch (skill.type) {
         case 'heal':
@@ -2426,11 +2435,11 @@ function renderEffects() {
                 ctx.fillText('复活!', effect.x, effect.y - 30);
                 break;
             case 'lightning':
-                // 雷电效果 - 延迟后显示
+                // 雷电效果 - 延迟后显示 v2.32.0 更新
                 if (effect.delay > 0) {
                     effect.delay -= 0.016; // 假设60fps
                     if (effect.delay <= 0) {
-                        // 雷电降落，造成伤害
+                        // 雷电降落，造成伤害 v2.32.0 应用卡牌效果
                         game.enemies.forEach(enemy => {
                             if (!enemy.alive) return;
                             const dx = enemy.x - effect.x;
@@ -2443,6 +2452,11 @@ function renderEffects() {
                                 if (enemy.hp <= 0) {
                                     enemy.alive = false;
                                     game.gold += enemy.exp;
+                                }
+                                // v2.32.0 定身效果
+                                if (effect.cardStun && effect.cardStun > 0) {
+                                    enemy.stunned = true;
+                                    enemy.stunEndTime = game.time + effect.cardStun;
                                 }
                             }
                         });

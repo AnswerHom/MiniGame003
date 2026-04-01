@@ -246,14 +246,23 @@ const SkillManager = {
     
     // 扇形攻击技能（风雪冰天）
     useFanSkill(skill, caster, targets) {
-        // v2.20.0 获取该技能对应的卡牌效果
+        // v2.20.0 获取该技能对应的卡牌效果 v2.32.0 新增多个效果
         const skillEffects = (caster.cardEffects && caster.cardEffects[skill.name]) || {};
         
         // 应用卡牌伤害加成
         const cardBonus = skillEffects.damageBonus || 0;
         const damage = caster.attack * skill.damagePercent * (1 + cardBonus);
         
-        const fanAngle = skill.fanAngle * Math.PI / 180; // 转换为弧度
+        // v2.32.0 应用卡牌扇形角度加成
+        const cardFanAngle = skillEffects.fanAngle || 0;
+        const fanAngle = (skill.fanAngle + cardFanAngle) * Math.PI / 180; // 转换为弧度
+        
+        // v2.32.0 应用卡牌射程加成
+        const cardRange = skillEffects.range || 0;
+        const range = skill.range + cardRange;
+        
+        // v2.32.0 应用卡牌攻击速度加成
+        const cardAttackSpeed = skillEffects.attackSpeed || 0;
         
         // 找到目标方向
         let targetAngle = 0;
@@ -263,19 +272,43 @@ const SkillManager = {
             targetAngle = Math.atan2(dy, dx);
         }
         
+        // v2.32.0 应用卡牌投射物数量加成
+        const cardProjectileCount = skillEffects.projectileCount || 0;
+        const projectileCount = skill.projectileCount + cardProjectileCount;
+        
         // 发射扇形冰锥
-        for (let i = 0; i < skill.projectileCount; i++) {
+        for (let i = 0; i < projectileCount; i++) {
             // 计算每个冰锥的角度（均匀分布在扇形区域内）
-            const spread = fanAngle / (skill.projectileCount - 1);
+            const spread = fanAngle / (projectileCount - 1);
             const angle = targetAngle - fanAngle / 2 + spread * i;
             
-            createIceProjectile(caster, angle, damage, skill.range, skill.speed, skill.slowDuration, skill.slowAmount);
+            // v2.32.0 应用卡牌减速效果
+            const cardSlow = skillEffects.slow || 0;
+            const slowDuration = skill.slowDuration || 0;
+            const slowAmount = (skill.slowAmount || 0) + cardSlow;
+            
+            createIceProjectile(caster, angle, damage, range, skill.speed, slowDuration, slowAmount);
         }
     },
     
-    // 区域降落技能（雷劫）
+    // 区域降落技能（雷劫）v2.32.0 更新
     useGroundSkill(skill, caster, targets) {
-        const damage = caster.attack * skill.damagePercent;
+        // v2.32.0 获取该技能对应的卡牌效果
+        const skillEffects = (caster.cardEffects && caster.cardEffects[skill.name]) || {};
+        
+        // v2.32.0 应用卡牌伤害加成
+        const cardDamage = skillEffects.damageBonus || 0;
+        const damage = caster.attack * skill.damagePercent * (1 + cardDamage);
+        
+        // v2.32.0 应用卡牌半径加成
+        const cardRadius = skillEffects.radius || 0;
+        const radius = skill.radius + cardRadius;
+        
+        // v2.32.0 应用卡牌定身效果
+        const cardStun = skillEffects.stun || 0;
+        
+        // v2.32.0 应用卡牌穿透效果
+        const cardPierce = skillEffects.pierce || 0;
         
         // 目标位置（默认目标位置，如果没有目标则使用 caster 位置）
         let targetX = caster.x;
@@ -286,22 +319,43 @@ const SkillManager = {
             targetY = targets[0].y;
         }
         
-        // 添加延迟雷电效果
+        // 添加延迟雷电效果 v2.32.0 传递卡牌效果
         game.effects.push({
             type: 'lightning',
             x: targetX,
             y: targetY,
-            radius: skill.radius,
+            radius: radius,
             damage: damage,
             delay: skill.delay,
             life: skill.delay + 0.5,
-            caster: caster
+            caster: caster,
+            cardStun: cardStun,
+            cardPierce: cardPierce
         });
     },
     
-    // 击退技能（阴阳逆转）
+    // 击退技能（阴阳逆转）v2.32.0 更新
     useKnockbackSkill(skill, caster, targets) {
-        const damage = caster.attack * skill.damagePercent;
+        // v2.32.0 获取该技能对应的卡牌效果
+        const skillEffects = (caster.cardEffects && caster.cardEffects[skill.name]) || {};
+        
+        // v2.32.0 应用卡牌伤害加成
+        const cardDamage = skillEffects.damageBonus || 0;
+        const damage = caster.attack * skill.damagePercent * (1 + cardDamage);
+        
+        // v2.32.0 应用卡牌范围加成
+        const cardRange = skillEffects.range || 0;
+        const radius = skill.radius + cardRange;
+        
+        // v2.32.0 应用卡牌击退距离加成
+        const cardKnockback = skillEffects.knockback || 0;
+        const knockbackDist = skill.knockbackDist + cardKnockback;
+        
+        // v2.32.0 应用卡牌定身效果
+        const cardStun = skillEffects.stun || 0;
+        
+        // v2.32.0 护体神光：弹开时获得护盾
+        const cardShield = skillEffects.shield || 0;
         
         // 对范围内所有敌人造成伤害和击退
         game.enemies.forEach(enemy => {
@@ -311,7 +365,7 @@ const SkillManager = {
             const dy = enemy.y - caster.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             
-            if (dist <= skill.radius) {
+            if (dist <= radius) {
                 // 造成伤害
                 enemy.hp -= damage;
                 // v2.13.0 伤害飘字 - 无论敌人是否死亡都显示
@@ -323,18 +377,32 @@ const SkillManager = {
                 
                 // 击退效果
                 if (dist > 0) {
-                    enemy.x += (dx / dist) * skill.knockbackDist;
-                    enemy.y += (dy / dist) * skill.knockbackDist;
+                    enemy.x += (dx / dist) * knockbackDist;
+                    enemy.y += (dy / dist) * knockbackDist;
+                }
+                
+                // v2.32.0 定身效果
+                if (cardStun > 0) {
+                    enemy.stunned = true;
+                    enemy.stunEndTime = game.time + cardStun;
                 }
             }
         });
+        
+        // v2.32.0 护体神光效果：弹开时 caster 获得护盾
+        if (cardShield > 0) {
+            const maxHp = caster.hp || caster.maxHp || 1000;
+            const shieldAmount = maxHp * cardShield;
+            caster.shield = (caster.shield || 0) + shieldAmount;
+            caster.shieldEndTime = game.time + 3; // 持续3秒
+        }
         
         // 添加特效
         game.effects.push({
             type: 'yinYang',
             x: caster.x,
             y: caster.y,
-            radius: skill.radius,
+            radius: radius,
             life: skill.duration
         });
     },
