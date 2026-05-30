@@ -261,9 +261,6 @@ const SkillManager = {
         const cardRange = skillEffects.range || 0;
         const range = skill.range + cardRange;
         
-        // v2.32.0 应用卡牌攻击速度加成
-        const cardAttackSpeed = skillEffects.attackSpeed || 0;
-        
         // 找到目标方向
         let targetAngle = 0;
         if (targets[0]) {
