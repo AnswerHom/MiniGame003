@@ -1267,6 +1267,9 @@ function applyCardEffects() {
                     pierce: 0,
                     range: 0,
                     duration: 0,
+                    fanAngle: 0,       // v2.32.0 扇形角度（风雪冰天）
+                    knockback: 0,      // v2.32.0 击退距离（阴阳逆转）
+                    shield: 0,        // v2.32.0 护盾（阴阳逆转护体神光）
                     hot: 0,           // v2.32.0 持续治疗
                     reflect: 0,        // v2.32.0 反射护盾
                     slowOnBreak: 0,    // v2.32.0 护盾破碎减速
@@ -1395,6 +1398,9 @@ function applySingleCardEffect(player, cardName) {
             pierce: 0,
             range: 0,
             duration: 0,
+            fanAngle: 0,       // v2.32.0 扇形角度（风雪冰天）
+            knockback: 0,      // v2.32.0 击退距离（阴阳逆转）
+            shield: 0,        // v2.32.0 护盾（阴阳逆转护体神光）
             hot: 0,           // v2.32.0 持续治疗
             reflect: 0,        // v2.32.0 反射护盾
             slowOnBreak: 0,    // v2.32.0 护盾破碎减速
@@ -1458,6 +1464,22 @@ function applySingleCardEffect(player, cardName) {
         case 'slowOnBreak':
             // v2.32.0 护盾破碎减速
             skillEffects.slowOnBreak += value;
+            break;
+        case 'fanAngle':
+            // v2.32.0 扇形角度（风雪冰天）
+            skillEffects.fanAngle += value;
+            break;
+        case 'knockback':
+            // v2.32.0 击退距离（阴阳逆转）
+            skillEffects.knockback += value;
+            break;
+        case 'shield':
+            // v2.32.0 护盾（阴阳逆转护体神光）
+            skillEffects.shield += value;
+            break;
+        case 'cooldown':
+            // v2.32.0 大招冷却（阴阳逆转）
+            skillEffects.cooldown += value;
             break;
     }
     
